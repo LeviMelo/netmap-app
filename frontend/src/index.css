@@ -1,0 +1,73 @@
+/* frontend/src/index.css */
+
+/* Import external fonts FIRST */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* THEN import Tailwind */
+@import "tailwindcss"; /* Single v4 import */
+
+/* THEN define theme customizations */
+@theme {
+  /* Define theme using CSS custom properties */
+  --color-primary-light: #67e8f9;
+  --color-primary: #06b6d4; /* cyan-500 */
+  --color-primary-dark: #0e7490;
+  --color-secondary-light: #fca5a5;
+  --color-secondary: #ef4444; /* red-500 */
+  --color-secondary-dark: #b91c1c;
+  --color-graph-node: theme('colors.blue.500');
+  --color-graph-edge: theme('colors.gray.500');
+  --color-canvas-bg: theme('colors.gray.800');
+  --color-sidebar-bg: rgba(17, 24, 39, 0.85);
+  --color-sidebar-border: rgba(55, 65, 81, 0.5);
+  --color-text-main: theme('colors.gray.100');
+  --color-text-dim: theme('colors.gray.400');
+  --blur-xs: 2px; --blur-sm: 4px;
+  --shadow-inner-lg: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  --font-family-sans: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* THEN define layers */
+@layer base {
+  body { @apply bg-gray-900 text-[var(--color-text-main)] font-sans antialiased; background-color: #111827; }
+  /* Scrollbar styles */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: rgba(55, 65, 81, 0.3); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(107, 114, 128, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.7); }
+  /* Base Input Styles */
+  input[type="range"] { @apply cursor-pointer accent-[var(--color-primary)]; }
+  select { @apply bg-gray-700 border-gray-600 rounded-md shadow-sm focus:border-primary focus:ring-primary; }
+  textarea { @apply bg-gray-800 border-gray-600 rounded-md shadow-sm focus:border-primary focus:ring-primary resize-none font-mono text-sm leading-relaxed; }
+  /* Remove the base .btn definition */
+  /* button { @apply px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900; } */
+
+  /* Define button variants directly including base styles */
+  .btn-primary {
+    @apply px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 /* Base styles repeated */
+           bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] focus:ring-[var(--color-primary)];
+  }
+  .btn-secondary {
+    @apply px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 /* Base styles repeated */
+           bg-gray-600 text-gray-100 hover:bg-gray-500 focus:ring-gray-500;
+  }
+  .btn-danger {
+     @apply px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 /* Base styles repeated */
+            bg-[var(--color-secondary)] text-white hover:bg-[var(--color-secondary-dark)] focus:ring-[var(--color-secondary)];
+  }
+}
+
+@layer components {
+  .card { @apply bg-gray-800 border border-gray-700 rounded-lg shadow-md p-4; }
+  .control-group { @apply border border-[var(--color-sidebar-border)] rounded-lg p-3 mb-4 bg-gray-800/50 shadow-inner-lg; }
+  .control-group h3 { @apply text-sm font-semibold text-[var(--color-text-main)] mb-3 border-b border-gray-700 pb-1; }
+  .control-item { @apply flex items-center justify-between mb-2 text-xs; }
+  .control-item label { @apply text-[var(--color-text-dim)] mr-2 whitespace-nowrap; }
+  .control-item input[type="range"] { @apply w-full h-1.5 bg-gray-600 rounded-lg appearance-none; }
+  .control-item input[type="checkbox"] { @apply rounded text-[var(--color-primary)] bg-gray-600 border-gray-500 focus:ring-[var(--color-primary)] focus:ring-offset-gray-800; }
+  .control-item span { @apply text-[var(--color-text-main)] font-mono text-right min-w-[30px] ml-2; }
+}
+
+/* App/Component Specific Styles */
+#cy { width: 100%; height: 100%; position: relative; background-color: var(--color-canvas-bg); }
+.cytoscape-grab { cursor: grabbing !important; }
