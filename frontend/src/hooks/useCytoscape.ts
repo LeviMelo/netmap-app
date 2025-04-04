@@ -1,4 +1,4 @@
-// frontend/src/hooks/useCytoscape.ts
+// frontend/src/hooks/useCytoscape.tsx
 import { useRef, useEffect, useCallback } from 'react';
 import cytoscape, {
   Core,
@@ -70,7 +70,7 @@ export const useCytoscape = ({
   const layoutRef = useRef<cytoscape.Layouts | null>(null);
   const edgeSourceNodeRef = useRef<NodeSingular | null>(null);
 
-  // Runs the layout; if "preset", it uses saved positions from the current elements.
+  // Runs the layout; if "preset", it uses saved positions from current elements.
   const runLayout = useCallback(
     (layoutOverride?: CyLayoutOptions) => {
       const cy = cyRef.current;
@@ -86,11 +86,14 @@ export const useCytoscape = ({
         };
       }
       layoutRef.current = cy.layout(optionsToRun);
-      layoutRef.current.run().promiseOn('layoutstop').then(() => {
-        if (updateNodePosition && optionsToRun.name !== 'preset') {
-          cy.nodes().forEach((n) => updateNodePosition(n.id(), n.position()));
-        }
-      });
+      layoutRef.current
+        .run()
+        .promiseOn('layoutstop')
+        .then(() => {
+          if (updateNodePosition && optionsToRun.name !== 'preset') {
+            cy.nodes().forEach((n) => updateNodePosition(n.id(), n.position()));
+          }
+        });
     },
     [layout, elements, updateNodePosition]
   );
@@ -109,7 +112,6 @@ export const useCytoscape = ({
             position: el.position(),
           } as GraphNode;
         } else {
-          // Cast as an edge so that source() and target() are recognized.
           const edge = el as cytoscape.EdgeSingular;
           const data = elDef.data as Partial<GraphEdgeData>;
           return {
@@ -136,26 +138,25 @@ export const useCytoscape = ({
       // Tap events on canvas, node, or edge.
       cy.on('tap', (event) => {
         if (event.target === cy) {
-          if (onCanvasTap) onCanvasTap(event.position);
-          if (onNodeSelect) onNodeSelect(null);
-          if (onEdgeSelect) onEdgeSelect(null);
+          onCanvasTap?.(event.position);
+          onNodeSelect?.(null);
+          onEdgeSelect?.(null);
         } else if (event.target.isNode && event.target.isNode()) {
           if (onNodeTap) onNodeTap(event.target.id());
-          if (onNodeSelect) onNodeSelect(event.target.id());
+          onNodeSelect?.(event.target.id());
         } else if (event.target.isEdge && event.target.isEdge()) {
           if (onEdgeTap) onEdgeTap(event.target.id());
-          if (onEdgeSelect) onEdgeSelect(event.target.id());
+          onEdgeSelect?.(event.target.id());
         }
       });
 
       // Double tap events.
       cy.on('dbltap', (event) => {
-        if (event.target === cy) {
-          // Do nothing on background double tap.
-        } else if (event.target.isNode && event.target.isNode()) {
-          if (onNodeDblTap) onNodeDblTap(event.target.id());
+        if (event.target === cy) return;
+        else if (event.target.isNode && event.target.isNode()) {
+          onNodeDblTap?.(event.target.id());
         } else if (event.target.isEdge && event.target.isEdge()) {
-          if (onEdgeDblTap) onEdgeDblTap(event.target.id());
+          onEdgeDblTap?.(event.target.id());
         }
       });
 
@@ -187,9 +188,7 @@ export const useCytoscape = ({
       cy.on('dragfreeon', 'node', (event) => {
         if (event.target.isNode && event.target.isNode()) {
           if (activeTool === 'drag' || !isConstructorMode) {
-            if (updateNodePosition) {
-              updateNodePosition(event.target.id(), event.target.position());
-            }
+            updateNodePosition && updateNodePosition(event.target.id(), event.target.position());
           }
           triggerGraphUpdate();
         }
@@ -212,6 +211,7 @@ export const useCytoscape = ({
     ]
   );
 
+  // Initialization useEffect.
   useEffect(() => {
     if (!containerRef.current || cyRef.current) return;
     const currentContainer = containerRef.current;
@@ -254,7 +254,7 @@ export const useCytoscape = ({
     setupEventListeners,
   ]);
 
-  // Update Cytoscape elements when "elements" prop changes.
+  // Element update useEffect.
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
@@ -280,7 +280,7 @@ export const useCytoscape = ({
     });
   }, [elements]);
 
-  // Update Cytoscape style when "style" prop changes.
+  // Style update useEffect.
   useEffect(() => {
     if (cyRef.current) cyRef.current.style(style);
   }, [style]);
@@ -318,13 +318,8 @@ export const useCytoscape = ({
     }
   };
 
-  const fit = useCallback(() => {
-    cyRef.current?.fit(undefined, 50);
-  }, []);
-
-  const center = useCallback(() => {
-    cyRef.current?.center();
-  }, []);
+  const fit = useCallback(() => cyRef.current?.fit(undefined, 50), []);
+  const center = useCallback(() => cyRef.current?.center(), []);
 
   const zoomIn = useCallback(() => {
     if (cyRef.current) {

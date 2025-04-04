@@ -1,4 +1,4 @@
-// frontend/src/components/layout/Sidebar.tsx
+// frontend/src/components/layout/Siderbar.tsx
 import React, { useMemo, useCallback } from 'react';
 import { JsonInput } from '../controls/JsonInput';
 import { LayoutControls } from '../controls/LayoutControls';
@@ -51,12 +51,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onExportPng,
   onRunAnalysis,
 }) => {
-  // Create a formatted JSON string of the graph data.
-  const jsonString = useMemo(() => {
-    return JSON.stringify(graphData, null, 2);
-  }, [graphData]);
+  const jsonString = useMemo(() => JSON.stringify(graphData, null, 2), [graphData]);
 
-  // Parse new JSON and update graph data.
   const handleJsonLoad = useCallback(
     (newJsonString: string) => {
       try {
