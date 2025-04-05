@@ -19,6 +19,46 @@ import {
 
 cytoscape.use(cola);
 
+/**
+ * Transforms the provided Cytoscape stylesheet by replacing deprecated values:
+ * - Replaces width/height values of 'label' with functions that compute a numeric value
+ *   based on the node's label.
+ * - Replaces text-background-color using a CSS variable with a hardcoded color.
+ */
+const transformStyle = (styles: cytoscape.StylesheetStyle[]): cytoscape.StylesheetStyle[] => {
+  return styles.map(rule => {
+    // Copy the rule to avoid mutating the original
+    const newRule = { ...rule };
+    if (newRule.style) {
+      // Cast to a record so we can safely access/modifiy properties.
+      const styleObj = newRule.style as Record<string, any>;
+      if (styleObj['width'] === 'label') {
+        // Compute node width based on the length of its label.
+        styleObj['width'] = (ele: any) => {
+          const label = ele.data('label') || "";
+          // Adjust the constant (7) as needed for your design.
+          return label.length * 7;
+        };
+      }
+      if (styleObj['height'] === 'label') {
+        // Compute node height based on the number of lines in its label.
+        styleObj['height'] = (ele: any) => {
+          const label = ele.data('label') || "";
+          // Split label into lines (if no newline, this returns an array of one)
+          const lines = label.split('\n').length;
+          // Adjust the constant (15) as needed for your design.
+          return lines * 15;
+        };
+      }
+      if (styleObj['text-background-color'] === 'var(--color-canvas-bg)') {
+        styleObj['text-background-color'] = '#1f2937';
+      }
+      newRule.style = styleObj;
+    }
+    return newRule;
+  });
+};
+
 interface UseCytoscapeProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   elements: GraphElement[];
@@ -215,10 +255,11 @@ export const useCytoscape = ({
   useEffect(() => {
     if (!containerRef.current || cyRef.current) return;
     const currentContainer = containerRef.current;
+    const processedStyle = transformStyle(style);
     const cyInstance = cytoscape({
       container: currentContainer,
       elements: JSON.parse(JSON.stringify(elements)),
-      style: style,
+      style: processedStyle,
       layout: { name: 'preset' },
       minZoom: minZoom,
       maxZoom: maxZoom,
@@ -282,7 +323,7 @@ export const useCytoscape = ({
 
   // Style update useEffect.
   useEffect(() => {
-    if (cyRef.current) cyRef.current.style(style);
+    if (cyRef.current) cyRef.current.style(transformStyle(style));
   }, [style]);
 
   // Update interaction mode and reattach event listeners.
