@@ -1,10 +1,9 @@
 // frontend/src/components/GraphCanvas.tsx
-import React, { useRef, useCallback, memo } from 'react'; // Import memo
-import CytoscapeComponent from 'react-cytoscapejs';
-import { Core } from 'cytoscape';
+import React, { useRef, useCallback, memo } from 'react';
+import CytoscapeComponent from 'react-cytoscapejs'; // Keep simplified import
+import { Core, LayoutOptions } from 'cytoscape';
 import { useGraphStore } from '../store';
 
-// Wrap component in memo to prevent re-renders if props haven't changed
 const GraphCanvas: React.FC = memo(() => {
   const { nodes, edges, style, setSelectedElement, stylesResolved } = useGraphStore(
     (state) => ({
@@ -12,21 +11,27 @@ const GraphCanvas: React.FC = memo(() => {
         edges: state.edges,
         style: state.style,
         setSelectedElement: state.setSelectedElement,
-        stylesResolved: state.stylesResolved, // Get the flag
+        stylesResolved: state.stylesResolved,
     })
   );
 
   const cyRef = useRef<Core | null>(null);
   const elements = CytoscapeComponent.normalizeElements({ nodes, edges });
 
+  // Define the layout separately
+  const graphLayout: LayoutOptions = {
+      name: 'grid', // Use grid layout for initial testing
+      fit: true,
+      padding: 30
+  };
+
   const handleCyInit = useCallback((cyInstance: Core) => {
     console.log("Cytoscape instance registered:", cyInstance);
     cyRef.current = cyInstance;
 
     cyInstance.ready(() => {
-      const layout = cyInstance.layout({ name: 'preset' });
+      const layout = cyInstance.layout(graphLayout);
       layout.run();
-      cyInstance.fit(undefined, 30);
       cyInstance.center();
 
       // Event Listeners
@@ -36,31 +41,30 @@ const GraphCanvas: React.FC = memo(() => {
       cyInstance.on('tap', 'node', (event) => setSelectedElement(event.target.id()));
       cyInstance.on('tap', 'edge', (event) => setSelectedElement(event.target.id()));
     });
-  }, [setSelectedElement]);
+  // Only depend on items used *inside* the callback
+  }, [setSelectedElement, graphLayout]);
 
-  // Render loading state or null until styles are resolved
+  // *** REMOVE THE ERRONEOUS getCssVar function declaration if it exists here ***
+  // It should NOT be present in this file. The errors indicate it was mistakenly added around line 77 previously.
+
   if (!stylesResolved) {
-      console.log("Styles not resolved yet, rendering loading/null");
-      return <div className="w-full h-full flex items-center justify-center bg-gray-900"><p>Loading Styles...</p></div>; // Or return null
+      return <div className="w-full h-full flex items-center justify-center bg-gray-900 text-text-secondary-dark"><p>Loading Styles...</p></div>;
   }
 
-  console.log("Styles resolved, rendering CytoscapeComponent with stylesheet:", style);
-
   return (
-    <div className="w-full h-full bg-gray-900 overflow-hidden">
+    // Add a distinct temporary background to the direct container for debugging
+    <div className="w-full h-full bg-red-900/20 overflow-hidden"> {/* Debug background */}
       <CytoscapeComponent
         elements={elements}
-        // Key might still be useful if elements themselves need forced updates
-        // key={JSON.stringify(elements)}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', background: 'rgba(0, 20, 0, 0.1)' }} // Debug background
         stylesheet={style} // Use the resolved style
-        layout={{ name: 'preset' }}
+        layout={graphLayout} // Pass layout options
         cy={handleCyInit}
         minZoom={0.1}
         maxZoom={3.0}
       />
     </div>
   );
-}); // Close the memo wrapper
+});
 
 export default GraphCanvas;

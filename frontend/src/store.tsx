@@ -1,29 +1,27 @@
 // frontend/src/store.ts
 import { create } from 'zustand';
 import { useEffect } from 'react';
-import { // <-- Import directly from cytoscape
+import {
     ElementDefinition,
-    Stylesheet, // <-- Use the direct export based on type definitions
-    Css         // <-- Import Css namespace for inner types
+    Css
 } from 'cytoscape';
 
-// Initial styles with placeholders/fallbacks
-const initialStyleSheet: Stylesheet = [ // Type annotation uses the alias directly
-     { selector: 'node', style: { 'background-color': '#888', 'label': 'data(label)' } as Css.Node }, // Cast inner object
-     { selector: 'edge', style: { 'line-color': '#ccc', 'target-arrow-color': '#ccc' } as Css.Edge }, // Cast inner object
+type CytoscapeStylesheet = any; // Keep 'any' workaround for TS2724
+
+const initialStyleSheet: CytoscapeStylesheet = [
+     { selector: 'node', style: { 'background-color': '#888', 'label': 'data(label)' } as Css.Node },
+     { selector: 'edge', style: { 'line-color': '#ccc', 'target-arrow-color': '#ccc' } as Css.Edge },
 ];
 
-// Interfaces (NodeData, EdgeData)
 export interface NodeData { id: string; label: string; color?: string; shape?: string; }
 export interface EdgeData { id: string; source: string; target: string; label?: string; color?: string; width?: number; }
 
 interface GraphState {
   nodes: ElementDefinition[];
   edges: ElementDefinition[];
-  style: Stylesheet; // Use the alias directly (it includes the array case)
+  style: CytoscapeStylesheet;
   selectedElementId: string | null;
   stylesResolved: boolean;
-
   setNodes: (nodes: ElementDefinition[]) => void;
   setEdges: (edges: ElementDefinition[]) => void;
   addNode: (node: ElementDefinition) => void;
@@ -31,14 +29,14 @@ interface GraphState {
   removeElement: (id: string) => void;
   updateElementData: (id: string, data: Partial<NodeData> | Partial<EdgeData>) => void;
   setSelectedElement: (id: string | null) => void;
-  setResolvedStyle: (style: Stylesheet) => void; // Use the alias
+  setResolvedStyle: (style: CytoscapeStylesheet) => void;
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
-  // Initial State
+  // Initial State (with positions)
   nodes: [
-    { data: { id: 'a', label: 'Node A' } },
-    { data: { id: 'b', label: 'Node B' } },
+    { data: { id: 'a', label: 'Node A' }, position: { x: 50, y: 50 } },
+    { data: { id: 'b', label: 'Node B' }, position: { x: 150, y: 150 } },
   ],
   edges: [
     { data: { id: 'ab', source: 'a', target: 'b', label: 'Edge A->B' } },
@@ -46,8 +44,7 @@ export const useGraphStore = create<GraphState>((set) => ({
   style: initialStyleSheet,
   selectedElementId: null,
   stylesResolved: false,
-
-  // Actions
+  // Actions...
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
@@ -72,13 +69,15 @@ export const useResolveCytoscapeStyles = () => {
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
+        // *** RESTORE THIS FUNCTION BODY ***
         const getCssVar = (varName: string, fallback: string): string => {
             const value = getComputedStyle(document.documentElement).getPropertyValue(varName.trim()).trim();
+            // console.log(`CSS Var ${varName}: ${value || fallback}`); // Optional debug log
             return value || fallback;
         };
+        // *** END RESTORED BODY ***
 
-        // Define the resolved stylesheet using the Stylesheet type alias
-        const resolvedStyleSheet: Stylesheet = [
+        const resolvedStyleSheet: CytoscapeStylesheet = [
              {
                 selector: 'node',
                 style: {
@@ -89,10 +88,10 @@ export const useResolveCytoscapeStyles = () => {
                     'text-outline-width': 1,
                     'font-size': '12px',
                     'shape': 'ellipse',
-                    'width': 'auto',
-                    'height': 'auto',
+                    'width': 'label', // Reverted
+                    'height': 'label', // Reverted
                     'padding': '10px',
-                } as Css.Node, // Cast inner style object
+                } as Css.Node,
             },
             {
                 selector: 'node:selected',
@@ -115,7 +114,7 @@ export const useResolveCytoscapeStyles = () => {
                     'text-background-opacity': 1,
                     'text-background-color': getCssVar('--color-secondary-dark', '#111827'),
                     'text-background-padding': '2px',
-                } as Css.Edge, // Cast inner style object
+                } as Css.Edge,
             },
             {
                 selector: 'edge:selected',
@@ -127,9 +126,7 @@ export const useResolveCytoscapeStyles = () => {
             },
         ];
 
-        // console.log("Attempting to set resolved styles..."); // Keep for debugging if needed
         setResolvedStyle(resolvedStyleSheet);
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 };
