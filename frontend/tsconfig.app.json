@@ -1,7 +1,5 @@
-// frontend/tsconfig.app.json
 {
   "compilerOptions": {
-    "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -12,7 +10,6 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
@@ -23,13 +20,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-     /* Path Aliasing (inherited from tsconfig.json) */
-     "baseUrl": ".",
-     "paths": {
-       "@/*": ["src/*"]
-     }
+    "noUncheckedSideEffectImports": true
   },
   "include": ["src"]
-  // "references": [{ "path": "./tsconfig.node.json" }] // REMOVED this line
 }
