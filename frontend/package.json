@@ -13,6 +13,7 @@
     "cytoscape": "^3.31.2",
     "cytoscape-cose-bilkent": "^4.1.0",
     "cytoscape-dagre": "^2.5.0",
+    "lucide-react": "^0.488.0",
     "react": "^19.0.0",
     "react-cytoscapejs": "^2.0.0",
     "react-dom": "^19.0.0",

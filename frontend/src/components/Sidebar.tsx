@@ -1,116 +1,137 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGraphStore } from '../store';
 import { parseGraphSyntax } from '../utils/graphParser';
-import { diabetesExampleSyntax } from '../constants/exampleGraph'; // Import example
-import { useTranslations } from '../hooks/useTranslations'; // Import i18n hook
+import { diabetesExampleSyntax } from '../constants/exampleGraph';
+import { useTranslations } from '../hooks/useTranslations';
+import Panel from './ui/Panel';
+import Button from './ui/Button';
+import TextAreaInput from './ui/TextAreaInput';
+// Correct icon imports - remove unused ones
+import { UploadCloud, LayoutGrid, Languages, Pencil, Sun, Moon } from 'lucide-react';
 
 const availableLayouts = ['grid', 'cose', 'circle', 'breadthfirst', 'dagre'];
 
 const Sidebar: React.FC = () => {
-  const { t, locale, setLocale } = useTranslations(); // Use the hook
+  const { t, locale, setLocale } = useTranslations();
   const [graphInputText, setGraphInputText] = useState<string>('');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+      const root = window.document.documentElement;
+      root.classList.remove(theme === 'light' ? 'dark' : 'light');
+      root.classList.add(theme);
+  }, [theme]);
+
+  // ** CORRECTED ZUSTAND STATE SELECTION **
   const setNodes = useGraphStore((state) => state.setNodes);
   const setEdges = useGraphStore((state) => state.setEdges);
   const stylesResolved = useGraphStore((state) => state.stylesResolved);
   const currentLayout = useGraphStore((state) => state.layoutName);
   const setLayoutName = useGraphStore((state) => state.setLayoutName);
+  // ** END CORRECTION **
+
 
   const handleLoadGraph = () => {
-     console.log("Attempting to load graph from text...");
-     // Pass the translation function 't' to the parser
      const parsedData = parseGraphSyntax(graphInputText, t);
      if (parsedData) {
-         console.log("Parsed data:", parsedData);
          setNodes(parsedData.nodes);
          setEdges(parsedData.edges);
      } else {
-         // This branch may not be reachable if parser always returns object
-         console.error("Critical parsing error occurred.");
-         alert(t('parseErrorAlert')); // Use translated alert
+         alert(t('parseErrorAlert'));
      }
   };
 
-  const handlePasteExample = () => {
-      setGraphInputText(diabetesExampleSyntax); // Use constant
-  };
+  const handlePasteExample = () => { setGraphInputText(diabetesExampleSyntax); };
+  const toggleLocale = () => { setLocale(locale === 'en-US' ? 'pt-BR' : 'en-US'); };
+  const toggleTheme = () => { setTheme(theme === 'light' ? 'dark' : 'light'); };
 
-  const toggleLocale = () => {
-      setLocale(locale === 'en-US' ? 'pt-BR' : 'en-US');
-  };
 
   return (
-    <div className="flex flex-col h-full p-4"> {/* Added standard padding */}
-      {/* Language Toggle */}
-      <div className="mb-4 text-right">
-           <button onClick={toggleLocale} className="text-sm text-accent-cyan hover:underline focus:outline-none">
-               {locale === 'en-US' ? 'Mudar para Português' : 'Switch to English'}
-           </button>
+    <div className="flex flex-col h-full p-4 space-y-5 overflow-y-auto no-scrollbar">
+
+      {/* Header section */}
+      <div className="flex justify-between items-center mb-1">
+        {/* App Title */}
+        <h1 className="text-lg font-semibold text-text-base flex items-center gap-2">
+           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-primary"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>
+           {t('appTitle')}
+        </h1>
+         <div className="flex items-center gap-1"> {/* Reduced gap */}
+              {/* Language Toggle */}
+              <Button onClick={toggleLocale} variant="ghost" size="sm" icon={Languages} title={locale === 'en-US' ? 'Mudar para Português' : 'Switch to English'}>
+                  {locale === 'en-US' ? 'PT' : 'EN'}
+              </Button>
+               {/* Theme Toggle */}
+               <Button onClick={toggleTheme} variant="ghost" size="sm" icon={theme === 'light' ? Moon : Sun} title={theme === 'light' ? 'Mudar para modo escuro' : 'Switch to Light Mode'} /> {/* Closing tag was correct here before, just verifying */}
+         </div>
       </div>
 
-      {/* Input Section */}
-      <div>
-        {/* Use heading-1 class from index.css */}
-        <h2 className="heading-1 !mb-2">{t('loadGraphTitle')}</h2>
-        <label htmlFor="graph-input" className="label-text">
-            {t('loadGraphLabel')}{' '}
-             <button onClick={handlePasteExample} className="text-accent-cyan hover:underline focus:outline-none text-sm p-0">
-                 {t('pasteExampleLink')}
-             </button>:
-        </label>
-        <textarea
-            id="graph-input"
-            rows={10}
-            className="input-text mt-1 mb-2 h-48 resize-none font-mono text-sm"
-             // Use a simple placeholder, actual example pasted via button
-            placeholder={`[Node A]\n[Node B]\n[Node A] -> [Node B] : "Connects"`}
-            value={graphInputText}
-            onChange={(e) => setGraphInputText(e.target.value)}
-            disabled={!stylesResolved}
-        />
-        <button
-            // Use btn classes from index.css
-            className="btn btn-primary w-full"
-            onClick={handleLoadGraph}
-            disabled={!stylesResolved || !graphInputText.trim()}
-        >
-            {t('loadGraphButton')}
-        </button>
-      </div>
+      {/* Load Graph Panel */}
+      <Panel title={t('loadGraphTitle')} icon={UploadCloud}>
+          <TextAreaInput
+              id="graph-input"
+              // ** CORRECTED LABEL JSX ASSIGNMENT **
+              // Define the label content separately for clarity
+              label={
+                  <span className="flex justify-between items-center w-full">
+                    <span>{t('loadGraphLabel')}</span>
+                    <button
+                        type="button" // Important for buttons inside labels
+                        onClick={handlePasteExample}
+                        className="text-accent-cyan hover:underline focus:outline-none text-xs p-0 font-medium"
+                    >
+                        {t('pasteExampleLink')}
+                    </button>
+                  </span>
+              }
+              // ** END CORRECTION **
+              rows={8}
+              className="font-mono text-xs leading-relaxed"
+              placeholder={`[Node A]\n[Node B]\n[Node A] -> [Node B]`}
+              value={graphInputText}
+              onChange={(e) => setGraphInputText(e.target.value)}
+              disabled={!stylesResolved}
+          />
+          <Button
+              variant="primary"
+              className="w-full"
+              onClick={handleLoadGraph}
+              disabled={!stylesResolved || !graphInputText.trim()}
+              // icon={FileText} // Removed unused icon import earlier
+          >
+              {t('loadGraphButton')}
+          </Button>
+      </Panel>
 
-      {/* Layout Controls Section */}
-      <div className="mt-6">
-          {/* Use heading-2 class */}
-          <h3 className="heading-2 !mt-0 !mb-2">{t('layoutTitle')}</h3>
-          <div className="flex flex-wrap gap-2">
+      {/* Layout Controls Panel */}
+      <Panel title={t('layoutTitle')} icon={LayoutGrid}>
+          <div className="grid grid-cols-3 gap-2">
               {availableLayouts.map((layout) => (
-                  <button
+                  <Button
                       key={layout}
                       onClick={() => setLayoutName(layout)}
-                       // Use btn classes
-                      className={`btn text-xs px-3 py-1 ${
-                          currentLayout === layout ? 'btn-primary' : 'btn-secondary'
-                      }`}
+                      variant={currentLayout === layout ? 'primary' : 'secondary'}
+                      size="sm"
+                      className="w-full justify-center"
                       disabled={!stylesResolved}
-                  >
+                  > {/* Verified opening tag */}
                       {layout.charAt(0).toUpperCase() + layout.slice(1)}
-                  </button>
+                  </Button> // ** Verified closing tag **
               ))}
           </div>
-      </div>
+      </Panel>
 
-       {/* Editing Placeholder */}
-       <div className="mt-6">
-             {/* Use heading-2 class */}
-            <h3 className="heading-2 !mt-0 !mb-2">{t('editingTitle')}</h3>
-            <p className="text-sm text-text-secondary-dark">{t('editingPlaceholder')}</p>
-        </div>
+       {/* Editing Placeholder Panel */}
+       <Panel title={t('editingTitle')} icon={Pencil}>
+            <p className="text-sm text-text-muted">{t('editingPlaceholder')}</p>
+        </Panel>
 
       {/* Spacer */}
       <div className="flex-grow"></div>
 
       {/* Footer / Authorship */}
-      <div className="mt-4 pt-4 border-t border-border-dark text-center">
-           <p className="text-sm text-text-secondary-dark">
+      <div className="mt-4 pt-4 text-center border-t border-border">
+           <p className="text-xs text-text-muted opacity-75">
                {t('authorship')}
            </p>
       </div>

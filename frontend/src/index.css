@@ -1,75 +1,134 @@
-/* frontend/src/index.css */
+/* Use Tailwind directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Define CSS variables (as before) */
+/* Define CSS variables */
 :root {
-  /* Default Dark Mode */
-  --color-primary-dark: #4f46e5;   /* Indigo 600 */
-  --color-secondary-dark: #111827; /* Gray 900 */
-  --color-accent-cyan: #22d3ee;    /* Cyan 400 */
-  --color-accent-gold: #facc15;    /* Yellow 400 */
-  --color-text-primary-dark: #f3f4f6; /* Gray 100 */
-  --color-text-secondary-dark: #9ca3af; /* Gray 400 */
-  --color-border-dark: #374151;     /* Gray 700 */
-  --color-danger: #ef4444; /* Red 500 */
-  --color-success: #22c55e; /* Green 500 */
+  /* --- Dark Mode (Default) --- */
+  --color-bg-primary-dark: #111111;
+  --color-bg-secondary-dark: #1f1f1f;
+  --color-bg-tertiary-dark: #2a2a2a;
+  --color-accent-primary-dark: #0891b2; /* Cyan */
+  --color-accent-primary-hover-dark: #06b6d4;
+  --color-accent-secondary-dark: #FFBF00; /* Gold */
+  --color-accent-secondary-hover-dark: #FFD700;
+  --color-accent-tertiary-dark: #7c3aed; /* Violet */
+  --color-text-base-dark: #e5e5e5;
+  --color-text-muted-dark: #a3a3a3;
+  --color-text-inverted-dark: #171717;
+  --color-text-accent-dark: var(--color-accent-primary-dark);
+  --color-border-dark: #404040;
+  --color-danger-dark: #dc2626;
+  --color-success-dark: #16a34a;
+  --color-warning-dark: #f59e0b;
 
-  /* Light Mode Variables */
-  --color-primary-light: #6366f1; /* Indigo 500 */
-  --color-secondary-light: #ffffff; /* White */
-  --color-accent-cyan-light: #06b6d4; /* Cyan 500 */
-  --color-accent-gold-light: #eab308; /* Yellow 500 */
-  --color-text-primary-light: #1f2937; /* Gray 800 */
-  --color-text-secondary-light: #6b7280; /* Gray 500 */
-  --color-border-light: #e5e7eb; /* Gray 200 */
+  /* --- Light Mode --- */
+  --color-bg-primary-light: #f8fafc;  /* Slate 50 */
+  --color-bg-secondary-light: #ffffff; /* White */
+  --color-bg-tertiary-light: #f1f5f9;  /* Slate 100 */
+  --color-accent-primary-light: #0891b2; /* Cyan 600 */
+  --color-accent-primary-hover-light: #0e7490; /* Cyan 700 */
+  --color-accent-secondary-light: #d97706; /* Amber 600 */
+  --color-accent-secondary-hover-light: #b45309; /* Amber 700 */
+  --color-accent-tertiary-light: #7c3aed; /* Violet 600 */
+  --color-text-base-light: #1e293b;  /* Slate 800 */
+  --color-text-muted-light: #64748b;  /* Slate 500 */
+  --color-text-inverted-light: #ffffff; /* White */
+  --color-text-accent-light: var(--color-accent-primary-light);
+  --color-border-light: #e2e8f0;  /* Slate 200 */
+  --color-danger-light: #dc2626;
+  --color-success-light: #16a34a;
+  --color-warning-light: #f59e0b; /* Amber 500 */
+
+  /* --- Default Theme Assignment (Dark) --- */
+  --color-bg-primary: var(--color-bg-primary-dark);
+  --color-bg-secondary: var(--color-bg-secondary-dark);
+  --color-bg-tertiary: var(--color-bg-tertiary-dark);
+  --color-accent-primary: var(--color-accent-primary-dark);
+  --color-accent-primary-hover: var(--color-accent-primary-hover-dark);
+  --color-accent-secondary: var(--color-accent-secondary-dark);
+  --color-accent-secondary-hover: var(--color-accent-secondary-hover-dark);
+  --color-accent-tertiary: var(--color-accent-tertiary-dark);
+  --color-text-base: var(--color-text-base-dark);
+  --color-text-muted: var(--color-text-muted-dark);
+  --color-text-inverted: var(--color-text-inverted-dark);
+  --color-text-accent: var(--color-text-accent-dark);
+  --color-border: var(--color-border-dark);
+  --color-danger: var(--color-danger-dark);
+  --color-success: var(--color-success-dark);
+  --color-warning: var(--color-warning-dark);
 }
 
-/* Light Mode override */
+/* Apply Light Mode variables when .light class is present */
 html.light {
-  --color-primary-dark: var(--color-primary-light);
-  --color-secondary-dark: var(--color-secondary-light);
-  --color-accent-cyan: var(--color-accent-cyan-light);
-  --color-accent-gold: var(--color-accent-gold-light);
-  --color-text-primary-dark: var(--color-text-primary-light);
-  --color-text-secondary-dark: var(--color-text-secondary-light);
-  --color-border-dark: var(--color-border-light);
+  --color-bg-primary: var(--color-bg-primary-light);
+  --color-bg-secondary: var(--color-bg-secondary-light);
+  --color-bg-tertiary: var(--color-bg-tertiary-light);
+  --color-accent-primary: var(--color-accent-primary-light);
+  --color-accent-primary-hover: var(--color-accent-primary-hover-light);
+  --color-accent-secondary: var(--color-accent-secondary-light);
+  --color-accent-secondary-hover: var(--color-accent-secondary-hover-light);
+  --color-accent-tertiary: var(--color-accent-tertiary-light);
+  --color-text-base: var(--color-text-base-light);
+  --color-text-muted: var(--color-text-muted-light);
+  --color-text-inverted: var(--color-text-inverted-light);
+  --color-text-accent: var(--color-text-accent-light);
+  --color-border: var(--color-border-light);
+  --color-danger: var(--color-danger-light);
+  --color-success: var(--color-success-light);
+  --color-warning: var(--color-warning-light);
 }
 
 /* Base body styling */
 body {
-  @apply bg-secondary-dark text-text-primary-dark antialiased;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  @apply bg-bg-primary text-text-base antialiased;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
+/* Ensure font is linked in index.html or via build process */
 
 /* Define reusable component classes using @apply */
 @layer components {
+  /* Panels */
   .panel {
-    @apply bg-gray-800 border-border-dark p-4 rounded-md; /* Base panel style */
+    @apply bg-bg-secondary rounded-lg border border-border p-4 shadow-md;
   }
+  .panel-title {
+     @apply text-md font-semibold text-accent-primary mb-3 flex items-center gap-2;
+  }
+
+  /* Buttons */
   .btn {
-     @apply px-4 py-2 rounded-md font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-secondary-dark;
+     @apply inline-flex items-center justify-center font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg-primary transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed gap-2; /* Increased disabled opacity */
   }
   .btn-primary {
-    @apply btn bg-primary-dark text-white hover:bg-indigo-700 focus:ring-primary-dark;
+    @apply btn bg-accent-primary text-text-inverted hover:bg-accent-primary-hover focus:ring-accent-primary;
   }
   .btn-secondary {
-     @apply btn bg-gray-600 text-text-primary-dark hover:bg-gray-500 focus:ring-gray-500;
+     @apply btn bg-bg-tertiary text-text-base hover:bg-border focus:ring-accent-primary;
+  }
+  .btn-warning {
+     @apply btn bg-accent-secondary text-text-inverted hover:bg-accent-secondary-hover focus:ring-accent-secondary;
   }
    .btn-danger {
-      @apply btn bg-danger text-white hover:bg-red-600 focus:ring-danger;
+      @apply btn bg-danger text-white hover:bg-red-700 focus:ring-danger;
   }
-   .input-text {
-      @apply block w-full px-3 py-2 bg-gray-700 border border-border-dark rounded-md text-text-primary-dark placeholder-text-secondary-dark focus:outline-none focus:ring-1 focus:ring-accent-cyan focus:border-accent-cyan sm:text-sm;
+   .btn-ghost {
+      @apply btn bg-transparent text-text-muted hover:bg-bg-tertiary focus:ring-accent-primary;
+  }
+
+  /* Inputs */
+  .input-base {
+       @apply block w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-text-base placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent-primary focus:border-accent-primary sm:text-sm disabled:opacity-60;
+  }
+  .input-text {
+       @apply input-base;
   }
   .label-text {
-      @apply block text-sm font-medium text-text-secondary-dark mb-1;
+      @apply block text-xs font-medium text-text-muted mb-1 uppercase tracking-wider;
   }
-  .heading-1 {
-      @apply text-xl font-bold text-accent-cyan mb-4;
-  }
-    .heading-2 {
-        @apply text-lg font-semibold text-accent-gold mt-6 mb-2;
-    }
+
+   /* Utility for visually hidden scrollbar */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
