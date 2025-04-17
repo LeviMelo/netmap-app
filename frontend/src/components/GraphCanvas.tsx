@@ -3,25 +3,26 @@ import CytoscapeComponent from 'react-cytoscapejs';
 import cytoscape, {
     Core,
     LayoutOptions,
-    NodeSingular, // Import for node type
-    EdgeSingular  // Import for edge type
+    NodeSingular,
+    EdgeSingular
 } from 'cytoscape';
 import { useGraphStore } from '../store';
 
-// Import layout extensions - TS should now find these due to d.ts files
-import coseBilkent from 'cytoscape-cose-bilkent';
-import dagre from 'cytoscape-dagre';
-// import cola from 'cytoscape-cola'; // Example layout extension (install if needed)
-
-// Register layout extensions - Use a flag to prevent multiple registrations
+// --- Require and Register layout extensions ---
 let layoutsRegistered = false;
 if (typeof window !== 'undefined' && !layoutsRegistered) {
     try {
+        // Use require for better compatibility with how extensions often expect to be loaded
+        const coseBilkent = require('cytoscape-cose-bilkent');
+        const dagre = require('cytoscape-dagre');
+        // const cola = require('cytoscape-cola'); // If needed
+
         cytoscape.use(coseBilkent);
         cytoscape.use(dagre);
-        // cytoscape.use(cola); // Register if installed and needed
+        // cytoscape.use(cola);
+
         layoutsRegistered = true;
-        console.log("Cytoscape layouts registered.");
+        console.log("Cytoscape layouts registered via require().");
     } catch (e) {
         console.warn("Could not register layout extension(s):", e);
     }
@@ -40,45 +41,40 @@ const GraphCanvas: React.FC = memo(() => {
 
   // Memoize elements calculation
   const elements = useMemo(() => {
-      // console.log("Calculating normalized elements..."); // Less noisy log
       return CytoscapeComponent.normalizeElements({ nodes, edges });
   }, [nodes, edges]);
 
   // Define layout options dynamically based on selected name
   const graphLayout = useMemo((): LayoutOptions => {
-      // console.log(`Setting layout options for: ${layoutName}`); // Less noisy log
-
-      // Base options common to many layouts (or defaults)
+      // console.log(`Setting layout options for: ${layoutName}`);
       const baseOptions = {
             padding: 30,
-            animate: true,
-            animationDuration: 500,
-            fit: true, // Include fit here, will assert type later
+            animate: true, // Use animation for layout transitions
+            animationDuration: 500, // Duration in ms
+            fit: true, // Whether to fit the viewport to the graph
       };
-
-      // Layout specific options
-      let specificOptions: any = {}; // Use 'any' temporarily for flexibility
-      let currentLayoutName = layoutName; // Use a local variable
+      let specificOptions: any = {};
+      let currentLayoutName = layoutName;
 
       switch(layoutName) {
           case 'cose':
-              // Check if cose-bilkent was registered (best effort, no static type check possible)
-              // We assume registration worked if no error was thrown above.
-              currentLayoutName = 'cose-bilkent'; // Prefer cose-bilkent
+              currentLayoutName = 'cose-bilkent'; // Prefer cose-bilkent if registered
               specificOptions = {
-                  // Options specific to cose-bilkent / cose
-                  nodeRepulsion: (_node: NodeSingular) => 4500, // Type param, use _ if not needed
-                  idealEdgeLength: (_edge: EdgeSingular) => 100, // Type param, use _ if not needed
+                  nodeRepulsion: (_node: NodeSingular) => 4500,
+                  idealEdgeLength: (_edge: EdgeSingular) => 100,
                   gravity: 0.1,
-                  numIter: 1000, // Example specific option
+                  numIter: 1000,
                   randomize: true,
+                  nodeDimensionsIncludeLabels: true, // Important for label overlap avoidance
+                  uniformNodeDimensions: false,
               };
               break;
           case 'dagre':
-              currentLayoutName = 'dagre'; // Ensure name matches
+              currentLayoutName = 'dagre';
               specificOptions = {
                   rankDir: 'TB', // Top to bottom
                   spacingFactor: 1.2,
+                  nodeDimensionsIncludeLabels: true,
               };
               break;
            case 'grid':
@@ -93,76 +89,53 @@ const GraphCanvas: React.FC = memo(() => {
                 currentLayoutName = 'breadthfirst';
                 specificOptions = { spacingFactor: 1.2, directed: true };
                 break;
-          // Add cases for other layouts (e.g., 'cola')
           default:
               console.warn(`Unknown layout name "${layoutName}", falling back to grid.`);
-              currentLayoutName = 'grid'; // Fallback to grid
+              currentLayoutName = 'grid';
               specificOptions = { spacingFactor: 1.2 };
       }
-
-      // Combine base and specific options, ensuring 'name' is correct
-      // Assert the final object as LayoutOptions to satisfy TS regarding 'fit' etc.
       return { name: currentLayoutName, ...baseOptions, ...specificOptions } as LayoutOptions;
+  }, [layoutName]);
 
-  }, [layoutName]); // Recompute only when layoutName changes
-
-  // Function to run layout (memoized)
+  // Function to run layout
   const runLayout = useCallback(() => {
       const cy = cyRef.current;
       if (cy) {
           console.log(`Running layout: ${graphLayout.name}`);
-          // Stop any previous layout animations before starting new one
-          cy.stop(true, true);
-          // Run the layout
+          cy.stop(true, true); // Stop previous animations
           cy.layout(graphLayout).run();
       }
-  }, [graphLayout]); // Dependency on the computed graphLayout object
+  }, [graphLayout]);
 
-  // Effect to run layout when elements or layout options change
+  // Effect to run layout when elements or layout changes
   useEffect(() => {
     if (cyRef.current && stylesResolved) {
-      console.log("Elements or layout changed, running layout...");
       runLayout();
     }
-  // Run when the graph data changes or the layout definition changes
-  }, [elements, runLayout, stylesResolved]);
+  }, [elements, runLayout, stylesResolved]); // dependencies determine when layout runs
 
-
-  // Memoize the core initialization callback
+  // Cytoscape core initialization and event binding
   const handleCyInit = useCallback((cyInstance: Core) => {
     console.log("Registering Cytoscape instance...");
     cyRef.current = cyInstance;
     cyInstance.ready(() => {
          console.log("Cytoscape core ready. Applying events.");
-         cyInstance.center(); // Center initially
+         // Layout is handled by useEffect, just center initially
+         cyInstance.center();
 
-         // --- Event Listeners ---
-         cyInstance.removeAllListeners(); // Clear previous listeners
+         // Event Listeners
+         cyInstance.removeAllListeners(); // Ensure clean listeners on re-init (dev mode)
          cyInstance.on('tap', (event) => {
-           if (event.target === cyInstance) {
-               console.log("Tap background -> Deselect");
-               setSelectedElement(null);
-           }
+           if (event.target === cyInstance) setSelectedElement(null);
          });
-         cyInstance.on('tap', 'node', (event) => {
-             const id = event.target.id();
-             console.log(`Tap node ${id} -> Select`);
-             setSelectedElement(id);
-           });
-         cyInstance.on('tap', 'edge', (event) => {
-             const id = event.target.id();
-             console.log(`Tap edge ${id} -> Select`);
-             setSelectedElement(id);
-         });
-         // --- End Event Listeners ---
+         cyInstance.on('tap', 'node', (event) => setSelectedElement(event.target.id()));
+         cyInstance.on('tap', 'edge', (event) => setSelectedElement(event.target.id()));
     });
-  // Dependency only on the state setter function
-  }, [setSelectedElement]);
+  }, [setSelectedElement]); // Dependency on setter
 
 
   // Render loading state until styles are resolved
   if (!stylesResolved) {
-      console.log("Styles not resolved yet, rendering loading indicator.");
       return (
           <div className="w-full h-full flex items-center justify-center bg-gray-900 text-text-secondary-dark">
               <p>Loading Styles...</p>
@@ -170,17 +143,14 @@ const GraphCanvas: React.FC = memo(() => {
       );
   }
 
-  // console.log(`Rendering CytoscapeComponent with effective layout name: ${graphLayout.name}`); // More detailed log
-
   return (
-    <div className="w-full h-full bg-gray-900 overflow-hidden"> {/* Standard background */}
+    <div className="w-full h-full bg-gray-900 overflow-hidden"> {/* Standard bg */}
       <CytoscapeComponent
         elements={elements}
         stylesheet={style}
-        // Layout prop only sets initial config before JS takes over
-        layout={{ name: 'preset' }} // Use preset so nodes appear near initial positions before layout runs
+        layout={{ name: 'preset' }} // Layouts controlled via useEffect/runLayout
         cy={handleCyInit}
-        style={{ width: '100%', height: '100%' }} // Standard style
+        style={{ width: '100%', height: '100%' }}
         minZoom={0.1}
         maxZoom={3.0}
       />

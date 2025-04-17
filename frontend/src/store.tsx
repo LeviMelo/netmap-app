@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { useEffect } from 'react';
-import {
-    ElementDefinition,
-    Css
-} from 'cytoscape';
+import { ElementDefinition, Css } from 'cytoscape';
 
 // Use 'any' as a workaround for the incorrect TS error TS2724 regarding Stylesheet export
 type CytoscapeStylesheet = any;
@@ -34,10 +31,10 @@ export interface EdgeData {
 interface GraphState {
   nodes: ElementDefinition[];
   edges: ElementDefinition[];
-  style: CytoscapeStylesheet; // Using 'any' workaround
+  style: CytoscapeStylesheet;
   selectedElementId: string | null;
   stylesResolved: boolean;
-  layoutName: string; // Name of the selected layout
+  layoutName: string;
 
   // Actions
   setNodes: (nodes: ElementDefinition[]) => void;
@@ -47,24 +44,24 @@ interface GraphState {
   removeElement: (id: string) => void;
   updateElementData: (id: string, data: Partial<NodeData> | Partial<EdgeData>) => void;
   setSelectedElement: (id: string | null) => void;
-  setResolvedStyle: (style: CytoscapeStylesheet) => void; // Use 'any' workaround
+  setResolvedStyle: (style: CytoscapeStylesheet) => void;
   setLayoutName: (name: string) => void;
 }
 
 // --- Zustand Store Definition ---
 export const useGraphStore = create<GraphState>((set) => ({
   // Initial State
-  nodes: [
-    { data: { id: 'a', label: 'Node A' }, position: { x: 50, y: 50 } },
-    { data: { id: 'b', label: 'Node B' }, position: { x: 150, y: 150 } },
+  nodes: [ // Simple initial state
+    { data: { id: 'n0', label: 'Welcome!' }, position: { x: 100, y: 100 } },
+    { data: { id: 'n1', label: 'Load graph in sidebar ->' }, position: { x: 300, y: 100 } },
   ],
   edges: [
-    { data: { id: 'ab', source: 'a', target: 'b', label: 'Edge A->B' } },
+      {data: { id: 'e0', source: 'n0', target: 'n1', label: 'Example'}},
   ],
-  style: initialStyleSheet, // Start with basic styles
+  style: initialStyleSheet,
   selectedElementId: null,
-  stylesResolved: false, // Styles start unresolved
-  layoutName: 'grid', // Default layout
+  stylesResolved: false,
+  layoutName: 'grid',
 
   // Actions Implementation
   setNodes: (nodes) => set({ nodes }),
@@ -91,9 +88,7 @@ export const useResolveCytoscapeStyles = () => {
     const stylesResolved = useGraphStore((state) => state.stylesResolved);
 
     useEffect(() => {
-        if (typeof window === 'undefined' || stylesResolved) {
-            return;
-        }
+        if (typeof window === 'undefined' || stylesResolved) return;
 
         const getCssVar = (varName: string, fallback: string): string => {
             const value = getComputedStyle(document.documentElement).getPropertyValue(varName.trim()).trim();
@@ -113,9 +108,12 @@ export const useResolveCytoscapeStyles = () => {
                     'text-outline-width': 1,
                     'font-size': '12px',
                     'shape': 'ellipse',
-                    'width': 'label', // Reverted to label for auto-sizing
-                    'height': 'label',
-                    'padding': '10px',
+                    // Remove width/height, rely on padding for size
+                    // 'width': 'label', // DEPRECATED
+                    // 'height': 'label', // DEPRECATED
+                    'padding': '12px', // Increase padding slightly
+                    'text-halign': 'center', // Center text horizontally
+                    'text-valign': 'center', // Center text vertically
                 } as Css.Node,
             },
             {
@@ -123,6 +121,8 @@ export const useResolveCytoscapeStyles = () => {
                 style: {
                     'border-width': 3,
                     'border-color': getCssVar('--color-accent-gold', '#facc15'),
+                    'overlay-color': getCssVar('--color-accent-gold', '#facc15'), // Optional: Add overlay
+                    'overlay-opacity': 0.2,
                 } as Css.Node,
             },
              {
@@ -139,6 +139,7 @@ export const useResolveCytoscapeStyles = () => {
                     'text-background-opacity': 1,
                     'text-background-color': getCssVar('--color-secondary-dark', '#111827'),
                     'text-background-padding': '2px',
+                    'arrow-scale': 1.2, // Make arrows slightly larger
                 } as Css.Edge,
             },
             {
@@ -147,6 +148,8 @@ export const useResolveCytoscapeStyles = () => {
                     'line-color': getCssVar('--color-accent-gold', '#facc15'),
                     'target-arrow-color': getCssVar('--color-accent-gold', '#facc15'),
                     'width': 4,
+                    'overlay-color': getCssVar('--color-accent-gold', '#facc15'), // Optional: Add overlay
+                    'overlay-opacity': 0.2,
                 } as Css.Edge,
             },
         ];
