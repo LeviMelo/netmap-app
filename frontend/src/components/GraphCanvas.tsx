@@ -80,21 +80,25 @@ const GraphCanvas: React.FC = memo(() => {
   const runLayout = useCallback(() => {
     const cy = cyRef.current;
     if (!cy || cy.elements().length === 0) return;
+  
     try {
+      // First try the specialized CoSE‑Bilkent
       cy.stop();
       cy.layout(graphLayout).run();
     } catch (err) {
+      // If that errors (Invalid array length), fall back to the built‑in "cose"
       console.warn('CoSE‑Bilkent failed, falling back to basic cose:', err);
       cy.layout({
-        name: 'cose',
+        name: 'cose',            // <-- basic force‐directed layout
         padding: 30,
         animate: true,
         animationDuration: 500,
         fit: true,
         spacingFactor: 1.2
-      }).run();
+      } as any).run();
     }
   }, [graphLayout]);
+  
 
   useEffect(() => {
     if (stylesResolved) runLayout();
