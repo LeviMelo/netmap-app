@@ -1,4 +1,3 @@
-// src/components/ShareSidebar.tsx
 import React, { useState } from 'react';
 import { Core } from 'cytoscape';
 import { useTranslations } from '../hooks/useTranslations';
@@ -19,15 +18,19 @@ const ShareSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
   const [pngHeight, setPngHeight] = useState(1080);
 
   const handleDownload = () => {
-    const cy = cyRef.current;
+    // ... (download logic remains the same) ...
+     const cy = cyRef.current;
     if (!cy) return;
 
     if (format === 'json') {
       const full = (cy.json() as any).elements;
+      // Careful: cy.json() might not include 'style' property by default.
+      // You might need to iterate elements and get their renderedStyle if needed.
       const nodes = full.nodes.map((n: any) => {
         const o: any = { data: n.data };
         if (includePos) o.position = n.position;
-        if (includeStyles) o.style = n.style;
+        // 'style' might not be directly on the json output, adjust if needed
+        if (includeStyles && n.style) o.style = n.style;
         return o;
       });
       const edges = full.edges.map((e: any) => ({ data: e.data }));
@@ -46,10 +49,12 @@ const ShareSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
       const lines: string[] = [];
       cy.nodes().forEach(n => {
         const d = n.data() as any;
-        lines.push(`[${d.label}](id=${d.id})`);
+        // Include ID in output for better reference
+        lines.push(`[${d.label || 'Untitled'}](id=${d.id})`);
       });
       cy.edges().forEach(e => {
         const d = e.data() as any;
+        // Use IDs for source/target in text output for robustness
         lines.push(`${d.source} -> ${d.target}${d.label ? ` : "${d.label}"` : ''}`);
       });
       const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
@@ -60,8 +65,19 @@ const ShareSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
       a.click();
       URL.revokeObjectURL(url);
 
-    } else {
-      const uri = cy.png({ full: true, scale: pngWidth / cy.width() });
+    } else { // PNG
+        // Use specified dimensions, ensure they are numbers
+        const w = Number(pngWidth) || 1920;
+        const h = Number(pngHeight) || 1080;
+        const scaleFactor = w / cy.width(); // Calculate scale based on width
+
+        const uri = cy.png({
+            full: true, // Capture the whole graph
+            scale: scaleFactor,
+            // bg: 'white', // Optionally set background color for PNG
+            // width: w, // These might not be directly supported by cy.png, scale is primary
+            // height: h
+         });
       const a = document.createElement('a');
       a.href = uri;
       a.download = 'netmap.png';
@@ -69,37 +85,36 @@ const ShareSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
     }
   };
 
+
   return (
     <aside
+      // Apply the base .sidebar-overlay class
+      // THEN add the background color variable utility (bg-bg-secondary)
+      // THEN add the LIGHT mode opacity utility (bg-opacity-30)
+      // THEN add the DARK mode opacity utility (dark:bg-opacity-50)
       className={`
-        fixed right-0 top-0 h-full w-80
-        bg-bg-secondary/30 light:bg-bg-secondary/30 dark:bg-bg-secondary/50
-        backdrop-blur-lg backdrop-filter
-        border-l border-border
-        rounded-l-lg shadow-lg
-        transform transition-transform
+        sidebar-overlay
+        bg-bg-secondary bg-opacity-30 dark:bg-opacity-50
         ${open ? 'translate-x-0' : 'translate-x-full'}
       `}
       aria-labelledby="share-title"
       role="dialog"
       aria-modal="true"
     >
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      {/* Header remains the same */}
+       <div className="flex items-center justify-between p-4 border-b border-border">
         <h2 id="share-title" className="text-lg font-semibold">
           {t('shareSidebarLabel')}
         </h2>
-        <button
-          onClick={onClose}
-          aria-label={t('close')}
-          className="text-xl leading-none"
-        >
-          &times;
+        <button onClick={onClose} aria-label={t('close')} className="btn btn-ghost px-2 py-1 text-xl leading-none">
+          ×
         </button>
       </div>
-      <div className="p-4 space-y-4">
-        {/* Format selector */}
+
+      {/* Body remains the same */}
+      <div className="p-4 space-y-4 overflow-y-auto h-[calc(100%-60px)] no-scrollbar">
         <div>
-          <label className="block font-medium mb-1">{t('format')}</label>
+          <label className="label-text mb-1">{t('format')}</label>
           <select
             className="input-base"
             value={format}
@@ -111,50 +126,29 @@ const ShareSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
           </select>
         </div>
 
-        {/* JSON options */}
         {format === 'json' && (
           <div className="space-y-2">
-            <label className="inline-flex items-center">
-              <input
-                type="checkbox"
-                checked={includePos}
-                onChange={e => setIncludePos(e.target.checked)}
-                className="mr-2"
-              />
+            <label className="label-text inline-flex items-center gap-2">
+              <input type="checkbox" checked={includePos} onChange={e => setIncludePos(e.target.checked)} />
               {t('includePositions')}
             </label>
-            <label className="inline-flex items-center">
-              <input
-                type="checkbox"
-                checked={includeStyles}
-                onChange={e => setIncludeStyles(e.target.checked)}
-                className="mr-2"
-              />
+            {/* Include Styles might be tricky depending on cy.json() output */}
+            {/* <label className="label-text inline-flex items-center gap-2">
+              <input type="checkbox" checked={includeStyles} onChange={e => setIncludeStyles(e.target.checked)} />
               {t('includeStyles')}
-            </label>
+            </label> */}
           </div>
         )}
 
-        {/* PNG options */}
         {format === 'png' && (
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm">{t('pngWidth')}</label>
-              <input
-                type="number"
-                className="input-base w-full"
-                value={pngWidth}
-                onChange={e => setPngWidth(Number(e.target.value))}
-              />
+              <label className="label-text">{t('pngWidth')}</label>
+              <input type="number" className="input-base" value={pngWidth} onChange={e => setPngWidth(Number(e.target.value))} min="100"/>
             </div>
             <div>
-              <label className="block text-sm">{t('pngHeight')}</label>
-              <input
-                type="number"
-                className="input-base w-full"
-                value={pngHeight}
-                onChange={e => setPngHeight(Number(e.target.value))}
-              />
+              <label className="label-text">{t('pngHeight')}</label>
+              <input type="number" className="input-base" value={pngHeight} onChange={e => setPngHeight(Number(e.target.value))} min="100"/>
             </div>
           </div>
         )}

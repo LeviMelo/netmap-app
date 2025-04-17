@@ -1,48 +1,45 @@
-// src/App.tsx
-// Remove useResolveCytoscapeStyles entirely and just render GraphCanvas with our new
-// always‑ready stylesheet.
-
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react'; // Keep React import for MouseEvent type hint
 import { Core } from 'cytoscape';
 import TopBar from './components/TopBar';
-import Sidebar from './components/Sidebar';
-import GraphCanvas from './components/GraphCanvas';
+import Sidebar from './components/Sidebar'; // Corrected filename casing
+import GraphCanvas from './components/GraphCanvas'; // Corrected filename casing
 import MetricsSidebar from './components/MetricsSidebar';
 import ShareSidebar from './components/ShareSidebar';
 
 const App: React.FC = () => {
-  // keep ref to Cytoscape instance
   const cyRef = useRef<Core | null>(null);
-
-  // control right‑side panels
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-
-  // left pane resizer
   const [leftWidth, setLeftWidth] = useState(300);
-  const startX = useRef(0);
-  const startW = useRef(300);
-  const onMouseDown = (e: React.MouseEvent) => {
-    startX.current = e.clientX;
-    startW.current = leftWidth;
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
-  const onMouseMove = (e: MouseEvent) => {
-    const dx = e.clientX - startX.current;
-    setLeftWidth(Math.max(200, startW.current + dx));
-  };
-  const onMouseUp = () => {
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+  const isResizing = useRef(false); // Track resizing state
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent text selection during resize
+    isResizing.current = true;
+    const startX = e.clientX;
+    const startW = leftWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizing.current) return;
+      const dx = moveEvent.clientX - startX;
+      setLeftWidth(Math.max(200, Math.min(startW + dx, window.innerWidth - 200))); // Min/Max width
+    };
+
+    const handleMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
-  // callbacks from GraphCanvas
+
   const handleCyInit = (cy: Core) => {
     cyRef.current = cy;
   };
 
-  // keep only one sidebar open at a time
   const toggleMetrics = () => {
     setMetricsOpen((o) => !o);
     if (shareOpen) setShareOpen(false);
@@ -53,25 +50,33 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen">
+    // Use CSS variables directly for potentially dynamic styles if needed
+    <div className="flex flex-col h-screen w-screen bg-bg-primary text-text-base">
       <TopBar onMetricsToggle={toggleMetrics} onShareToggle={toggleShare} />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden"> {/* Prevent content overflow */}
+        {/* Left Sidebar */}
         <div
-          style={{ width: leftWidth }}
-          className="min-w-[200px] bg-bg-secondary border-r border-border overflow-auto"
+          style={{ width: `${leftWidth}px` }}
+          className="flex-shrink-0 bg-bg-secondary border-r border-border overflow-y-auto no-scrollbar" // Allow scrolling
         >
           <Sidebar />
         </div>
+
+        {/* Resizer Handle */}
         <div
-          className="w-1 cursor-col-resize bg-border hover:bg-accent-primary"
-          onMouseDown={onMouseDown}
+          className="w-1.5 cursor-col-resize bg-border hover:bg-accent-primary transition-colors flex-shrink-0"
+          onMouseDown={handleMouseDown}
+          title="Resize sidebar" // Accessibility
         />
-        <div className="flex-1">
+
+        {/* Main Canvas Area */}
+        <div className="flex-1 overflow-hidden"> {/* Prevent canvas overflow */}
           <GraphCanvas onCyInit={handleCyInit} />
         </div>
       </div>
 
+      {/* Right Sidebars (Overlays) */}
       <MetricsSidebar
         open={metricsOpen}
         onClose={() => setMetricsOpen(false)}

@@ -20,7 +20,15 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* Path Alias (Optional but good practice) */
+    "baseUrl": ".",
+    "paths": {
+    "@/*": ["src/*"]
+    }
   },
-  "include": ["src", "src/types"]
+  // Make sure "src/types" is included here
+  "include": ["src", "src/types"],
+  "exclude": ["node_modules", "dist"] // Ensure node_modules is excluded
 }
