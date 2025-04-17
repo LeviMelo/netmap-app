@@ -1,27 +1,44 @@
-// frontend/src/store.ts
 import { create } from 'zustand';
 import { useEffect } from 'react';
 import {
     ElementDefinition,
-    Css
+    Css // Import Css namespace for inner types
 } from 'cytoscape';
 
-type CytoscapeStylesheet = any; // Keep 'any' workaround for TS2724
+// Use 'any' as a workaround for the incorrect TS error TS2724 regarding Stylesheet export
+type CytoscapeStylesheet = any;
 
+// Initial styles with placeholders/fallbacks - NO var() here initially
 const initialStyleSheet: CytoscapeStylesheet = [
      { selector: 'node', style: { 'background-color': '#888', 'label': 'data(label)' } as Css.Node },
      { selector: 'edge', style: { 'line-color': '#ccc', 'target-arrow-color': '#ccc' } as Css.Edge },
 ];
 
-export interface NodeData { id: string; label: string; color?: string; shape?: string; }
-export interface EdgeData { id: string; source: string; target: string; label?: string; color?: string; width?: number; }
+// --- Data Interfaces ---
+export interface NodeData {
+    id: string;
+    label: string;
+    color?: string;
+    shape?: string; // Use string type, Cytoscape handles known shapes
+}
+export interface EdgeData {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
+    color?: string;
+    width?: number;
+}
 
+// --- State Interface ---
 interface GraphState {
   nodes: ElementDefinition[];
   edges: ElementDefinition[];
-  style: CytoscapeStylesheet;
+  style: CytoscapeStylesheet; // Using 'any' workaround
   selectedElementId: string | null;
-  stylesResolved: boolean;
+  stylesResolved: boolean; // Flag to know when styles are ready
+
+  // Actions
   setNodes: (nodes: ElementDefinition[]) => void;
   setEdges: (edges: ElementDefinition[]) => void;
   addNode: (node: ElementDefinition) => void;
@@ -29,11 +46,12 @@ interface GraphState {
   removeElement: (id: string) => void;
   updateElementData: (id: string, data: Partial<NodeData> | Partial<EdgeData>) => void;
   setSelectedElement: (id: string | null) => void;
-  setResolvedStyle: (style: CytoscapeStylesheet) => void;
+  setResolvedStyle: (style: CytoscapeStylesheet) => void; // Use 'any' workaround
 }
 
+// --- Zustand Store Definition ---
 export const useGraphStore = create<GraphState>((set) => ({
-  // Initial State (with positions)
+  // Initial State
   nodes: [
     { data: { id: 'a', label: 'Node A' }, position: { x: 50, y: 50 } },
     { data: { id: 'b', label: 'Node B' }, position: { x: 150, y: 150 } },
@@ -41,10 +59,11 @@ export const useGraphStore = create<GraphState>((set) => ({
   edges: [
     { data: { id: 'ab', source: 'a', target: 'b', label: 'Edge A->B' } },
   ],
-  style: initialStyleSheet,
+  style: initialStyleSheet, // Start with basic styles
   selectedElementId: null,
-  stylesResolved: false,
-  // Actions...
+  stylesResolved: false, // Initially false
+
+  // Actions Implementation
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
@@ -59,24 +78,30 @@ export const useGraphStore = create<GraphState>((set) => ({
         edges: state.edges.map(e => e.data.id === id ? { ...e, data: { ...e.data, ...data } } : e)
   })),
   setSelectedElement: (id) => set({ selectedElementId: id }),
-  setResolvedStyle: (style) => set({ style: style, stylesResolved: true }),
+  setResolvedStyle: (style) => set({ style: style, stylesResolved: true }), // Set flag when styles are resolved
 }));
 
 // --- Hook to resolve CSS Variables ---
 export const useResolveCytoscapeStyles = () => {
+    // Get only the necessary parts from the store
     const setResolvedStyle = useGraphStore((state) => state.setResolvedStyle);
+    const stylesResolved = useGraphStore((state) => state.stylesResolved);
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
+        // Only run once client-side AND if styles haven't been resolved yet
+        if (typeof window === 'undefined' || stylesResolved) {
+            return;
+        }
 
-        // *** RESTORE THIS FUNCTION BODY ***
+        // Helper to get computed style property safely
         const getCssVar = (varName: string, fallback: string): string => {
             const value = getComputedStyle(document.documentElement).getPropertyValue(varName.trim()).trim();
-            // console.log(`CSS Var ${varName}: ${value || fallback}`); // Optional debug log
             return value || fallback;
         };
-        // *** END RESTORED BODY ***
 
+        console.log("Running style resolution effect..."); // Debug log
+
+        // Define the resolved stylesheet
         const resolvedStyleSheet: CytoscapeStylesheet = [
              {
                 selector: 'node',
@@ -88,10 +113,10 @@ export const useResolveCytoscapeStyles = () => {
                     'text-outline-width': 1,
                     'font-size': '12px',
                     'shape': 'ellipse',
-                    'width': 'label', // Reverted
-                    'height': 'label', // Reverted
-                    'padding': '10px',
-                } as Css.Node,
+                    'width': '50px', // Use fixed size temporarily
+                    'height': '50px', // Use fixed size temporarily
+                    'padding': '0px',
+                } as Css.Node, // Cast inner style object
             },
             {
                 selector: 'node:selected',
@@ -114,7 +139,7 @@ export const useResolveCytoscapeStyles = () => {
                     'text-background-opacity': 1,
                     'text-background-color': getCssVar('--color-secondary-dark', '#111827'),
                     'text-background-padding': '2px',
-                } as Css.Edge,
+                } as Css.Edge, // Cast inner style object
             },
             {
                 selector: 'edge:selected',
@@ -126,7 +151,9 @@ export const useResolveCytoscapeStyles = () => {
             },
         ];
 
+        // Update the store with resolved styles
         setResolvedStyle(resolvedStyleSheet);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+
+    // Depend only on the setter and the flag to ensure it runs just once effectively
+    }, [setResolvedStyle, stylesResolved]);
 };
