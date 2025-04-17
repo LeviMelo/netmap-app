@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { useEffect } from 'react';
 import {
     ElementDefinition,
-    LayoutOptions,
     Css
 } from 'cytoscape';
 

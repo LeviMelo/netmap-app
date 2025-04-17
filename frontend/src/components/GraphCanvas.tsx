@@ -1,9 +1,16 @@
-import React, { useRef, useCallback, memo, useEffect, useMemo } from 'react'; // Ensure all hooks are imported
+import React, { useRef, useCallback, memo, useEffect, useMemo } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
-import cytoscape, { Core, LayoutOptions } from 'cytoscape'; // Import cytoscape for extension registration
+import cytoscape, {
+    Core,
+    LayoutOptions,
+    NodeSingular, // Import for node type
+    EdgeSingular  // Import for edge type
+} from 'cytoscape';
 import { useGraphStore } from '../store';
-import coseBilkent from 'cytoscape-cose-bilkent'; // Example layout extension
-import dagre from 'cytoscape-dagre'; // Example layout extension
+
+// Import layout extensions - TS should now find these due to d.ts files
+import coseBilkent from 'cytoscape-cose-bilkent';
+import dagre from 'cytoscape-dagre';
 // import cola from 'cytoscape-cola'; // Example layout extension (install if needed)
 
 // Register layout extensions - Use a flag to prevent multiple registrations
@@ -33,33 +40,70 @@ const GraphCanvas: React.FC = memo(() => {
 
   // Memoize elements calculation
   const elements = useMemo(() => {
-      console.log("Calculating normalized elements...");
+      // console.log("Calculating normalized elements..."); // Less noisy log
       return CytoscapeComponent.normalizeElements({ nodes, edges });
   }, [nodes, edges]);
 
   // Define layout options dynamically based on selected name
   const graphLayout = useMemo((): LayoutOptions => {
-      console.log(`Setting layout options for: ${layoutName}`);
-      const options: LayoutOptions = {
-          name: layoutName,
-          fit: true, // Generally good default
-          padding: 30, // Default padding
-          animate: true, // Use animation for layout transitions
-          animationDuration: 500, // Duration in ms
-          // Add specific options per layout
-          nodeRepulsion: (node) => 4500, // For force-directed layouts like cose/cose-bilkent
-          idealEdgeLength: (edge) => 100, // For force-directed
-          gravity: 0.1, // For force-directed
-          rankDir: 'TB', // For dagre
-          spacingFactor: 1.2, // For dagre/grid etc.
-          // Add more options as needed, consulting cytoscape layout docs
+      // console.log(`Setting layout options for: ${layoutName}`); // Less noisy log
+
+      // Base options common to many layouts (or defaults)
+      const baseOptions = {
+            padding: 30,
+            animate: true,
+            animationDuration: 500,
+            fit: true, // Include fit here, will assert type later
       };
-      // Use cose-bilkent if cose is selected and extension is registered
-      if (layoutName === 'cose' && cytoscape.extensions && cytoscape.extensions.layout['cose-bilkent']) {
-           options.name = 'cose-bilkent';
-           console.log("Using cose-bilkent layout.");
+
+      // Layout specific options
+      let specificOptions: any = {}; // Use 'any' temporarily for flexibility
+      let currentLayoutName = layoutName; // Use a local variable
+
+      switch(layoutName) {
+          case 'cose':
+              // Check if cose-bilkent was registered (best effort, no static type check possible)
+              // We assume registration worked if no error was thrown above.
+              currentLayoutName = 'cose-bilkent'; // Prefer cose-bilkent
+              specificOptions = {
+                  // Options specific to cose-bilkent / cose
+                  nodeRepulsion: (_node: NodeSingular) => 4500, // Type param, use _ if not needed
+                  idealEdgeLength: (_edge: EdgeSingular) => 100, // Type param, use _ if not needed
+                  gravity: 0.1,
+                  numIter: 1000, // Example specific option
+                  randomize: true,
+              };
+              break;
+          case 'dagre':
+              currentLayoutName = 'dagre'; // Ensure name matches
+              specificOptions = {
+                  rankDir: 'TB', // Top to bottom
+                  spacingFactor: 1.2,
+              };
+              break;
+           case 'grid':
+                currentLayoutName = 'grid';
+                specificOptions = { spacingFactor: 1.2 };
+                break;
+           case 'circle':
+                currentLayoutName = 'circle';
+                specificOptions = { spacingFactor: 1.2 };
+                break;
+            case 'breadthfirst':
+                currentLayoutName = 'breadthfirst';
+                specificOptions = { spacingFactor: 1.2, directed: true };
+                break;
+          // Add cases for other layouts (e.g., 'cola')
+          default:
+              console.warn(`Unknown layout name "${layoutName}", falling back to grid.`);
+              currentLayoutName = 'grid'; // Fallback to grid
+              specificOptions = { spacingFactor: 1.2 };
       }
-      return options;
+
+      // Combine base and specific options, ensuring 'name' is correct
+      // Assert the final object as LayoutOptions to satisfy TS regarding 'fit' etc.
+      return { name: currentLayoutName, ...baseOptions, ...specificOptions } as LayoutOptions;
+
   }, [layoutName]); // Recompute only when layoutName changes
 
   // Function to run layout (memoized)
@@ -69,17 +113,18 @@ const GraphCanvas: React.FC = memo(() => {
           console.log(`Running layout: ${graphLayout.name}`);
           // Stop any previous layout animations before starting new one
           cy.stop(true, true);
+          // Run the layout
           cy.layout(graphLayout).run();
       }
-  }, [graphLayout]); // Dependency on graphLayout object
+  }, [graphLayout]); // Dependency on the computed graphLayout object
 
   // Effect to run layout when elements or layout options change
   useEffect(() => {
-    // Only run layout if Cytoscape is initialized and styles are ready
     if (cyRef.current && stylesResolved) {
+      console.log("Elements or layout changed, running layout...");
       runLayout();
     }
-    // Run when the graph data changes or the layout type changes
+  // Run when the graph data changes or the layout definition changes
   }, [elements, runLayout, stylesResolved]);
 
 
@@ -89,11 +134,10 @@ const GraphCanvas: React.FC = memo(() => {
     cyRef.current = cyInstance;
     cyInstance.ready(() => {
          console.log("Cytoscape core ready. Applying events.");
-         // Layout is handled by useEffect now
-         cyInstance.center();
+         cyInstance.center(); // Center initially
 
          // --- Event Listeners ---
-         cyInstance.removeAllListeners(); // Clear previous listeners on re-init (belt-and-suspenders)
+         cyInstance.removeAllListeners(); // Clear previous listeners
          cyInstance.on('tap', (event) => {
            if (event.target === cyInstance) {
                console.log("Tap background -> Deselect");
@@ -126,20 +170,17 @@ const GraphCanvas: React.FC = memo(() => {
       );
   }
 
-  // *** Isolation Test Point (Keep commented out unless debugging infinite loops) ***
-  // return <div className="w-full h-full bg-green-500 text-white flex items-center justify-center"><p>Styles Resolved, Cytoscape Paused for Debugging</p></div>;
-
-  console.log(`Rendering CytoscapeComponent with layout: ${layoutName}`);
+  // console.log(`Rendering CytoscapeComponent with effective layout name: ${graphLayout.name}`); // More detailed log
 
   return (
-    <div className="w-full h-full bg-gray-900 overflow-hidden"> {/* Changed debug bg to standard */}
+    <div className="w-full h-full bg-gray-900 overflow-hidden"> {/* Standard background */}
       <CytoscapeComponent
         elements={elements}
         stylesheet={style}
-        // Layout prop sets initial layout, but useEffect handles subsequent ones
-        layout={{ name: 'preset' }} // Use preset initially to respect node positions if provided
+        // Layout prop only sets initial config before JS takes over
+        layout={{ name: 'preset' }} // Use preset so nodes appear near initial positions before layout runs
         cy={handleCyInit}
-        style={{ width: '100%', height: '100%' }} // Removed debug background
+        style={{ width: '100%', height: '100%' }} // Standard style
         minZoom={0.1}
         maxZoom={3.0}
       />
