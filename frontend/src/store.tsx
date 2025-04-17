@@ -1,13 +1,16 @@
-// src/store.tsx
 import { create } from 'zustand';
 import cytoscape, { ElementDefinition } from 'cytoscape';
 
-// --- Data types for nodes and edges ---
+/* ----- tiny helper aliases to keep Cytoscape typings happy ------- */
+type CyStyle = Partial<cytoscape.StylesheetStyle>;
+type NodeShape = cytoscape.Css.NodeShape | string;
+
+/* ----------------------------- data ------------------------------ */
 export interface NodeData {
   id: string;
   label: string;
   color?: string;
-  shape?: cytoscape.Css.NodeShape;
+  shape?: NodeShape;
 }
 
 export interface EdgeData {
@@ -19,14 +22,12 @@ export interface EdgeData {
   width?: number;
 }
 
-// --- Custom type for our stylesheet rules ---
 interface StyleRule {
   selector: string;
-  // We're using a partial mapping of Cytoscape's CSS properties
-  style: Partial<cytoscape.Css.Styles>;
+  style: CyStyle;
 }
 
-// --- Graph state interface ---
+/* --------------------------- store ------------------------------- */
 interface GraphState {
   nodes: ElementDefinition[];
   edges: ElementDefinition[];
@@ -40,16 +41,20 @@ interface GraphState {
   addNode: (node: ElementDefinition) => void;
   addEdge: (edge: ElementDefinition) => void;
   removeElement: (id: string) => void;
-  updateElementData: (id: string, data: Partial<NodeData> | Partial<EdgeData>) => void;
+  updateElementData: (
+    id: string,
+    data: Partial<NodeData> | Partial<EdgeData>
+  ) => void;
   setSelectedElementId: (id: string | null) => void;
   setLayoutName: (name: string) => void;
 }
 
-// --- Create the Zustand store ---
 export const useGraphStore = create<GraphState>((set) => ({
-  // --- Initial state ---
+  /* --------- graph data ---------------------------------------- */
   nodes: [],
   edges: [],
+
+  /* --------- default stylesheet -------------------------------- */
   style: [
     {
       selector: 'node',
@@ -71,14 +76,8 @@ export const useGraphStore = create<GraphState>((set) => ({
         'border-color': 'transparent',
       },
     },
-    {
-      selector: 'node[color]',
-      style: { 'background-color': 'data(color)' },
-    },
-    {
-      selector: 'node[shape]',
-      style: { shape: 'data(shape)' as any },
-    },
+    { selector: 'node[color]', style: { 'background-color': 'data(color)' } },
+    { selector: 'node[shape]', style: { shape: 'data(shape)' as any } },
     {
       selector: 'node:selected',
       style: {
@@ -87,6 +86,7 @@ export const useGraphStore = create<GraphState>((set) => ({
         'overlay-opacity': 0.3,
       },
     },
+    /* ------------------------- edges --------------------------- */
     {
       selector: 'edge',
       style: {
@@ -119,16 +119,15 @@ export const useGraphStore = create<GraphState>((set) => ({
         'target-arrow-color': 'data(color)',
       },
     },
-    {
-      selector: 'edge[width]',
-      style: { width: 'data(width)' as any },
-    },
+    { selector: 'edge[width]', style: { width: 'data(width)' as any } },
   ],
+
+  /* --------- misc --------------------------------------------- */
   selectedElementId: null,
   stylesResolved: true,
   layoutName: 'cose',
 
-  // --- Actions ---
+  /* --------- actions ------------------------------------------ */
   setNodes: (nodes) => set({ nodes, selectedElementId: null }),
   setEdges: (edges) => set({ edges }),
   addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
@@ -142,19 +141,16 @@ export const useGraphStore = create<GraphState>((set) => ({
           e.data?.source !== id &&
           e.data?.target !== id
       ),
-      selectedElementId: s.selectedElementId === id ? null : s.selectedElementId,
+      selectedElementId:
+        s.selectedElementId === id ? null : s.selectedElementId,
     })),
   updateElementData: (id, data) =>
     set((s) => ({
       nodes: s.nodes.map((n) =>
-        n.data?.id === id
-          ? { ...n, data: { ...n.data, ...data } }
-          : n
+        n.data?.id === id ? { ...n, data: { ...n.data, ...data } } : n
       ),
       edges: s.edges.map((e) =>
-        e.data?.id === id
-          ? { ...e, data: { ...e.data, ...data } }
-          : e
+        e.data?.id === id ? { ...e, data: { ...e.data, ...data } } : e
       ),
     })),
   setSelectedElementId: (id) => set({ selectedElementId: id }),

@@ -1,30 +1,26 @@
-// src/components/MetricsSidebar.tsx
 import React, {
     useMemo,
     useEffect,
     useState,
     useCallback,
+    MutableRefObject,
   } from 'react';
   import { Core, NodeSingular } from 'cytoscape';
-  import { max as d3Max } from 'd3-array';
-  import {
-    scaleLinear,
-    scaleBand,
-    ScaleLinear,
-    ScaleBand,
-  } from 'd3-scale';
-  import { useTranslations } from '../hooks/useTranslations';
-  import { useGraphStore } from '../store';
+  import { rollup, max as d3Max } from 'd3-array';
+  import { scaleBand, scaleLinear, ScaleBand, ScaleLinear } from 'd3-scale';
   
-  interface Props {
-    open: boolean;
-    onClose: () => void;
-    cyRef: React.MutableRefObject<Core | null>;
-  }
+  import { useGraphStore } from '../store';
+  import { useTranslations } from '../hooks/useTranslations';
   
   interface DegreeBucket {
     deg: number;
     cnt: number;
+  }
+  
+  interface Props {
+    open: boolean;
+    onClose: () => void;
+    cyRef: MutableRefObject<Core | null>;
   }
   
   const MetricsSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
@@ -37,71 +33,69 @@ import React, {
       new Map()
     );
   
-    // Compute degree for each node in the cytoscape instance
+    /* ----------  degree calculation ---------- */
     const calculateDegrees = useCallback(() => {
-      const cy = cyRef.current;
-      const map = new Map<string, number>();
-      if (cy) {
+        const cy = cyRef.current;
+        if (!cy || cy.nodes().length === 0) {
+          setDegreeData(new Map());
+          return;
+        }
+        const map = new Map<string, number>();
         cy.nodes().forEach((n: NodeSingular) => {
           map.set(n.id(), n.degree(false));
         });
-      }
-      setDegreeData(map);
-    }, [cyRef]);
+        setDegreeData(map);
+      }, [cyRef]);
+      
   
-    // Recalculate whenever nodes or edges change
-    useEffect(() => {
-      calculateDegrees();
-    }, [nodes, edges, calculateDegrees]);
+    useEffect(calculateDegrees, [nodes, edges, calculateDegrees]);
   
-    // Build histogram buckets [ { deg, cnt }, ... ]
+    /* ----------  histogram ---------- */
     const histogram: DegreeBucket[] = useMemo(() => {
-      if (degreeData.size === 0) {
-        return [];
-      }
-      const counts = new Map<number, number>();
-      for (const deg of degreeData.values()) {
-        counts.set(deg, (counts.get(deg) || 0) + 1);
-      }
-      return Array.from(counts.entries())
-        .map(([deg, cnt]) => ({ deg, cnt }))
-        .sort((a, b) => a.deg - b.deg);
+      if (degreeData.size === 0) return [];
+      const degrees = Array.from(degreeData.values());
+      const counts = rollup(degrees, (v) => v.length, (d) => d);
+  
+      return Array.from(counts, ([deg, cnt]) => ({ deg, cnt })).sort(
+        (a, b) => a.deg - b.deg
+      );
     }, [degreeData]);
   
-    // Apply overlay styling to nodes when 'degree' is selected
+    /* ----------  degree overlay styling ---------- */
     useEffect(() => {
       const cy = cyRef.current;
       if (!cy) return;
   
-      // Reset border
+      /* clear previous overlay */
       cy.nodes().style({
         'border-width': 0,
         'border-color': 'transparent',
       });
   
-      if (overlay === 'degree' && degreeData.size > 0) {
-        const maxDegree = d3Max(Array.from(degreeData.values())) ?? 1;
+      if (overlay !== 'degree' || degreeData.size === 0) return;
   
-        // Linear color scale: 0 → primary, mid → secondary, max → danger
-        const colorScale: ScaleLinear<number, string> = scaleLinear<string>()
-          .domain([0, maxDegree * 0.5, maxDegree])
-          .range([
-            'var(--color-accent-primary)',
-            'var(--color-accent-secondary)',
-            'var(--color-danger)',
-          ])
-          .clamp(true);
+      const maxDegree = d3Max(Array.from(degreeData.values())) ?? 1;
   
-        cy.nodes().forEach((n: NodeSingular) => {
-          const d = degreeData.get(n.id()) ?? 0;
-          n.style({
-            'border-width': 3,
-            'border-color': colorScale(d),
-          });
+      /* colour scale — numeric domain, **string** range  */
+      const colour = scaleLinear<string>()
+        .domain([0, maxDegree * 0.5, maxDegree])
+        .range([
+          'var(--color-accent-primary)',
+          'var(--color-accent-secondary)',
+          'var(--color-danger)',
+        ])
+        .clamp(true);
+  
+      cy.nodes().forEach((n: NodeSingular) => {
+        const d = degreeData.get(n.id()) ?? 0;
+        n.style({
+          'border-width': 3,
+          'border-color': colour(d),
         });
-      }
+      });
     }, [overlay, degreeData, cyRef]);
   
+    /* ----------  render ---------- */
     return (
       <aside
         className={`
@@ -112,6 +106,7 @@ import React, {
         aria-labelledby="metrics-title"
         role="region"
       >
+        {/* header ------------------------------------------------------ */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 id="metrics-title" className="text-lg font-semibold">
             {t('graphMetrics')}
@@ -125,6 +120,7 @@ import React, {
           </button>
         </div>
   
+        {/* body -------------------------------------------------------- */}
         <div className="p-4 space-y-4 overflow-y-auto h-[calc(100%-60px)] no-scrollbar">
           <p>
             <strong>{t('nodes')}:</strong> {nodes.length}
@@ -133,7 +129,7 @@ import React, {
             <strong>{t('edges')}:</strong> {edges.length}
           </p>
   
-          {/* Overlay selector */}
+          {/* metric selector ----------------------------------------- */}
           <div>
             <label className="label-text mb-1">{t('overlayMetric')}</label>
             <select
@@ -148,35 +144,46 @@ import React, {
             </select>
           </div>
   
-          {/* Degree distribution histogram */}
+          {/* degree histogram ---------------------------------------- */}
           <div>
             <h4 className="label-text mb-2">{t('degreeDistribution')}</h4>
-            {histogram.length > 0 ? (
-              <svg className="w-full h-32" aria-label={t('degreeDistribution')}>
+  
+            {histogram.length ? (
+              <svg
+                className="w-full h-32"
+                aria-label={t('degreeDistribution')}
+              >
                 <g transform="translate(24, 4)">
                   {(() => {
-                    const svgWidth = 256 - 24 - 4;
-                    const svgHeight = 120 - 4 - 16;
-                    const xScale: ScaleBand<number> = scaleBand<number>()
-                      .domain(histogram.map((b) => b.deg))
-                      .range([0, svgWidth])
+                    /* layout */
+                    const width = 256 - 24 - 4;
+                    const height = 120 - 4 - 16;
+  
+                    const xDomain = histogram.map((b) => b.deg); // number[]
+                    const yDomain: [number, number] = [
+                      0,
+                      d3Max(histogram, (b) => b.cnt) ?? 1,
+                    ];
+  
+                    const x: ScaleBand<number> = scaleBand<number>()
+                      .domain(xDomain)
+                      .range([0, width])
                       .padding(0.2);
-                    const yScale: ScaleLinear<number, number> = scaleLinear()
-                      .domain([
-                        0,
-                        d3Max(histogram.map((b) => b.cnt)) ?? 0,
-                      ])
-                      .range([svgHeight, 0]);
+  
+                    const y: ScaleLinear<number, number> =
+                      scaleLinear<number>()
+                        .domain(yDomain)
+                        .range([height, 0]);
   
                     return histogram.map((b) => (
                       <rect
                         key={b.deg}
-                        x={xScale(b.deg) ?? 0}
-                        y={yScale(b.cnt)}
-                        width={xScale.bandwidth()}
-                        height={svgHeight - yScale(b.cnt)}
+                        x={x(b.deg) ?? 0}
+                        y={y(b.cnt)}
+                        width={x.bandwidth()}
+                        height={height - y(b.cnt)}
                         fill="var(--color-accent-primary)"
-                        rx={1}
+                        rx="1"
                       >
                         <title>{`Degree ${b.deg}: ${b.cnt} nodes`}</title>
                       </rect>
@@ -186,7 +193,7 @@ import React, {
               </svg>
             ) : (
               <p className="text-text-muted text-sm">
-                {nodes.length > 0 ? 'Calculating...' : 'No data'}
+                {nodes.length ? 'Calculating…' : 'No data'}
               </p>
             )}
           </div>
