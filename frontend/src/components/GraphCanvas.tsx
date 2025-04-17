@@ -1,149 +1,146 @@
-import React, { useRef, useCallback, memo, useEffect, useMemo } from 'react';
+// GraphCanvas.tsx
+// Updated: 2025‑04‑17
+import React, {
+  memo, useRef, useMemo, useCallback, useEffect
+} from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
-import cytoscape, {
-    Core,
-    LayoutOptions,
-    NodeSingular, // Keep types for potential future use in options
-    EdgeSingular
-} from 'cytoscape';
-import { useGraphStore } from '../store';
-import { useTranslations } from '../hooks/useTranslations';
-
-// --- Layout Registration ---
+import cytoscape, { Core, LayoutOptions, ElementDefinition } from 'cytoscape';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import dagre from 'cytoscape-dagre';
-let layoutsRegistered = false;
-if (typeof window !== 'undefined' && !layoutsRegistered) { /* ... registration try/catch ... */ }
+import edgehandles from 'cytoscape-edgehandles';
+import { useGraphStore } from '../store';
+
+// Single‐registration
+if (typeof window !== 'undefined') {
+  cytoscape.use(coseBilkent);
+  cytoscape.use(dagre);
+  cytoscape.use(edgehandles);
+}
+
+let newNodeCount = 0, newEdgeCount = 0;
+const genNodeId = () => `new_n_${Date.now()}_${newNodeCount++}`;
+const genEdgeId = () => `new_e_${Date.now()}_${newEdgeCount++}`;
 
 const GraphCanvas: React.FC = memo(() => {
-  const { t } = useTranslations();
-  const nodes = useGraphStore((state) => state.nodes);
-  const edges = useGraphStore((state) => state.edges);
-  const style = useGraphStore((state) => state.style);
-  const setSelectedElement = useGraphStore((state) => state.setSelectedElement);
-  const stylesResolved = useGraphStore((state) => state.stylesResolved);
-  const layoutName = useGraphStore((state) => state.layoutName);
+  // Separate selectors to avoid infinite renders
+  const nodes = useGraphStore(s => s.nodes);
+  const edges = useGraphStore(s => s.edges);
+  const stylesheet = useGraphStore(s => s.style);
+  const stylesResolved = useGraphStore(s => s.stylesResolved);
+  const layoutName = useGraphStore(s => s.layoutName);
+  const setSelectedElementId = useGraphStore(s => s.setSelectedElementId);
+  const addNode = useGraphStore(s => s.addNode);
+  const addEdge = useGraphStore(s => s.addEdge);
 
   const cyRef = useRef<Core | null>(null);
-  const elements = useMemo(() => { return CytoscapeComponent.normalizeElements({ nodes, edges }); }, [nodes, edges]);
 
-  // Define layout options dynamically
-  const graphLayout = useMemo((): LayoutOptions => {
-      console.log(`[GraphLayout] Setting options for: ${layoutName}`);
+  const elements = useMemo(
+    () => CytoscapeComponent.normalizeElements({ nodes, edges }),
+    [nodes, edges]
+  );
 
-      // Define base/common options separately
-      const baseOptions = {
-          padding: 30,
-          animate: true, // Animate layout changes
-          animationDuration: 500,
-          fit: true, // Fit the graph to the viewport after layout
-      };
-
-      let layoutConfig: any = { name: 'grid' }; // Default/fallback
-
-      switch(layoutName) {
-          case 'cose':
-              // ** STEP 1: START WITH MINIMAL COSE-BILKENT OPTIONS **
-              layoutConfig = {
-                  name: 'cose-bilkent',
-                  // Add common options back
-                  ...baseOptions,
-                  // ---- Start commenting out/simplifying specific cose options ----
-                  // nodeDimensionsIncludeLabels: false, // Start with false
-                  // idealEdgeLength: 100, // Use default
-                  // nodeRepulsion: 400000, // Use default (or try simpler number)
-                  // numIter: 1000, // Use default (2500)
-                  // randomize: true, // Default is true
-              };
-              break;
-          case 'dagre':
-              layoutConfig = {
-                  name: 'dagre',
-                  ...baseOptions, // Include common options
-                  rankDir: 'TB',
-                  spacingFactor: 1.2,
-                  // nodeDimensionsIncludeLabels: false, // Start with false
-              };
-              break;
-           case 'grid':
-                layoutConfig = { name: 'grid', ...baseOptions, spacingFactor: 1.2 };
-                break;
-           case 'circle':
-                layoutConfig = { name: 'circle', ...baseOptions, spacingFactor: 1.2 };
-                break;
-            case 'breadthfirst':
-                layoutConfig = { name: 'breadthfirst', ...baseOptions, spacingFactor: 1.2, directed: true };
-                break;
-          default:
-              console.warn(`[GraphLayout] Unknown layout name "${layoutName}", falling back to grid.`);
-              layoutConfig = { name: 'grid', ...baseOptions, spacingFactor: 1.2 }; // Ensure base options applied to fallback
-      }
-      // Assert final type (LayoutOptions includes BaseLayoutOptions + specific)
-      return layoutConfig as LayoutOptions;
+  // Build layout options with CoSE‑Bilkent first
+  const graphLayout = useMemo<LayoutOptions>(() => {
+    const base = { padding: 30, animate: true, animationDuration: 500, fit: true };
+    if (layoutName === 'cose') {
+      return {
+        name: 'cose-bilkent',
+        ...base,
+        tile: false,
+        nodeRepulsion: () => 4500,
+        idealEdgeLength: () => 100,
+        edgeElasticity: () => 0.45,
+        nestingFactor: 0.1,
+        gravity: 0.25,
+        gravityRange: 3.8,
+        gravityCompound: 1.0,
+        gravityRangeCompound: 1.5,
+        numIter: 2500,
+        randomize: true,
+        nodeDimensionsIncludeLabels: true,
+        uniformNodeDimensions: false,
+        refresh: 30,
+        tilingPaddingVertical: 10,
+        tilingPaddingHorizontal: 10
+      } as LayoutOptions;
+    }
+    if (layoutName === 'dagre') {
+      return ({
+        name: 'dagre',
+        ...base,
+        rankDir: 'TB',
+        spacingFactor: 1.2,
+        nodeDimensionsIncludeLabels: true
+      } as any) as LayoutOptions;
+    }
+    return { name: layoutName, ...base, spacingFactor: 1.2 } as LayoutOptions;
   }, [layoutName]);
 
-  // Function to run layout
+  // Attempt Bilkent, fallback to basic cose on error
   const runLayout = useCallback(() => {
-      const cy = cyRef.current;
-      if (cy) {
-          console.log(`[RunLayout] Running layout: ${graphLayout.name} with options:`, JSON.parse(JSON.stringify(graphLayout))); // Log deep copy for inspection
-          cy.stop(true, true);
-          try {
-              // Check if elements exist before running layout
-              if (cy.elements().length > 0) {
-                 cy.layout(graphLayout).run();
-              } else {
-                  console.log("[RunLayout] No elements to layout.");
-              }
-          } catch (error) {
-              console.error(`[RunLayout] Error running layout ${graphLayout.name}:`, error);
-              alert(`Layout Error: Failed to apply '${graphLayout.name}' layout. Check console.`);
-          }
-      } else {
-          console.warn("[RunLayout] Cytoscape core (cyRef.current) not available.");
-      }
-  }, [graphLayout]); // Depend on the computed layout options
-
-  // Effect to run layout when elements or layout options change
-  useEffect(() => {
-    if (cyRef.current && stylesResolved) {
-        console.log("[Effect] Elements or Layout changed, triggering runLayout.");
-      runLayout();
+    const cy = cyRef.current;
+    if (!cy || cy.elements().length === 0) return;
+    try {
+      cy.stop();
+      cy.layout(graphLayout).run();
+    } catch (err) {
+      console.warn('CoSE‑Bilkent failed, falling back to basic cose:', err);
+      cy.layout({
+        name: 'cose',
+        padding: 30,
+        animate: true,
+        animationDuration: 500,
+        fit: true,
+        spacingFactor: 1.2
+      }).run();
     }
-  }, [elements, runLayout, stylesResolved]); // Correct dependencies
+  }, [graphLayout]);
 
-  // Cytoscape core initialization and event binding
-  const handleCyInit = useCallback((cyInstance: Core) => {
-    console.log("[CyInit] Registering Cytoscape instance...");
-    cyRef.current = cyInstance;
-    cyInstance.ready(() => {
-         console.log("[CyInit] Cytoscape core ready. Applying events.");
-         // Layout is handled by useEffect, just center initially if needed
-         if (cyInstance.elements().length > 0) {
-            cyInstance.center();
-         }
-         // Event Listeners
-         cyInstance.removeAllListeners();
-         cyInstance.on('tap', (event) => { if (event.target === cyInstance) setSelectedElement(null); });
-         cyInstance.on('tap', 'node', (event) => setSelectedElement(event.target.id()));
-         cyInstance.on('tap', 'edge', (event) => setSelectedElement(event.target.id()));
+  useEffect(() => {
+    if (stylesResolved) runLayout();
+  }, [elements, runLayout, stylesResolved]);
+
+  // Initialize Cytoscape with manual editing UX
+  const handleCyInit = useCallback((cy: Core) => {
+    cyRef.current = cy;
+    cy.on('tap', e => {
+      setSelectedElementId(e.target === cy ? null : e.target.id());
     });
-  }, [setSelectedElement]); // Dependency remains correct
+    cy.on('dbltap', e => {
+      if (e.target === cy) {
+        const { x, y } = e.position;
+        const label = prompt('Enter label for new node:', 'New Node');
+        if (label) {
+          addNode({ data: { id: genNodeId(), label }, position: { x, y } } as ElementDefinition);
+        }
+      }
+    });
+    const eh = (cy as any).edgehandles({
+      toggleOffOnLeave: true,
+      complete: (s: any, t: any) => {
+        const label = prompt('Enter label for new edge:', '');
+        if (label !== null) {
+          addEdge({ data: { id: genEdgeId(), source: s.id(), target: t.id(), label: label || undefined } } as ElementDefinition);
+        }
+        eh.disableDrawMode();
+      }
+    });
+    eh.enableDrawMode();
+    if (cy.elements().length > 0) cy.center();
+  }, [addNode, addEdge, setSelectedElementId]);
 
-
-  // Render loading state until styles are resolved
-  if (!stylesResolved) { /* ... loading indicator ... */ }
-
-  // console.log(`[Render] Styles resolved, rendering CytoscapeComponent. Layout to run: ${graphLayout.name}`);
+  if (!stylesResolved) {
+    return <div className="w-full h-full flex items-center justify-center bg-bg-primary text-text-muted"><p>Loading styles…</p></div>;
+  }
 
   return (
     <div className="w-full h-full bg-bg-primary overflow-hidden">
       <CytoscapeComponent
         elements={elements}
-        stylesheet={style}
-        layout={{ name: 'preset' }} // Preset prevents initial default layout flash
+        stylesheet={stylesheet}
         cy={handleCyInit}
         style={{ width: '100%', height: '100%' }}
+        layout={{ name: 'preset' }}
         minZoom={0.1}
         maxZoom={3.0}
       />

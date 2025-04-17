@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+// Sidebar.tsx
+// Updated: 2025‑04‑17
+import React, { useState, useEffect, ChangeEvent, useMemo } from 'react';
 import { useGraphStore } from '../store';
 import { parseGraphSyntax } from '../utils/graphParser';
 import { diabetesExampleSyntax } from '../constants/exampleGraph';
@@ -6,127 +8,204 @@ import { useTranslations } from '../hooks/useTranslations';
 import Panel from './ui/Panel';
 import Button from './ui/Button';
 import TextAreaInput from './ui/TextAreaInput';
-import { UploadCloud, LayoutGrid, Languages, Pencil, Sun, Moon } from 'lucide-react';
+import TextInput from './ui/TextInput';
+import SelectInput, { SelectOption } from './ui/SelectInput';
+import EditPanel from './EditPanel';
+import {
+  UploadCloud,
+  LayoutGrid,
+  Languages,
+  Sun,
+  Moon,
+  Trash2,
+  PlusCircle,
+  Link
+} from 'lucide-react';
 
 const availableLayouts = ['grid', 'cose', 'circle', 'breadthfirst', 'dagre'];
+let newNodeCount = 0, newEdgeCount = 0;
+const genNodeId = () => `new_n_${Date.now()}_${newNodeCount++}`;
+const genEdgeId = () => `new_e_${Date.now()}_${newEdgeCount++}`;
 
 const Sidebar: React.FC = () => {
   const { t, locale, setLocale } = useTranslations();
-  const [graphInputText, setGraphInputText] = useState<string>('');
+  const [graphText, setGraphText] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [srcRef, setSrcRef] = useState('');
+  const [tgtRef, setTgtRef] = useState('');
+  const [edgeLabel, setEdgeLabel] = useState('');
 
   useEffect(() => {
-      const root = window.document.documentElement;
-      root.classList.remove(theme === 'light' ? 'dark' : 'light');
-      root.classList.add(theme);
+    document.documentElement.classList.toggle('light', theme === 'light');
   }, [theme]);
 
-  // ** CORRECTED ZUSTAND STATE SELECTION - SELECT INDIVIDUALLY **
-  const setNodes = useGraphStore((state) => state.setNodes);
-  const setEdges = useGraphStore((state) => state.setEdges);
-  const stylesResolved = useGraphStore((state) => state.stylesResolved);
-  const currentLayout = useGraphStore((state) => state.layoutName);
-  const setLayoutName = useGraphStore((state) => state.setLayoutName);
-  // ** END CORRECTION **
+  // Separate selectors for each slice
+  const nodes = useGraphStore(s => s.nodes);
+  const setNodes = useGraphStore(s => s.setNodes);
+  const setEdges = useGraphStore(s => s.setEdges);
+  const stylesResolved = useGraphStore(s => s.stylesResolved);
+  const currentLayout = useGraphStore(s => s.layoutName);
+  const setLayoutName = useGraphStore(s => s.setLayoutName);
+  const selectedElementId = useGraphStore(s => s.selectedElementId);
+  const removeElement = useGraphStore(s => s.removeElement);
+  const addNode = useGraphStore(s => s.addNode);
+  const addEdge = useGraphStore(s => s.addEdge);
 
-  const handleLoadGraph = () => {
-     const parsedData = parseGraphSyntax(graphInputText, t);
-     if (parsedData) {
-         setNodes(parsedData.nodes);
-         setEdges(parsedData.edges);
-     } else {
-         alert(t('parseErrorAlert'));
-     }
+  const handleLoad = () => {
+    const parsed = parseGraphSyntax(graphText, t);
+    if (parsed) {
+      setNodes(parsed.nodes);
+      setEdges(parsed.edges);
+    } else {
+      alert(t('parseErrorAlert'));
+    }
   };
 
-  const handlePasteExample = () => { setGraphInputText(diabetesExampleSyntax); };
-  const toggleLocale = () => { setLocale(locale === 'en-US' ? 'pt-BR' : 'en-US'); };
-  const toggleTheme = () => { setTheme(theme === 'light' ? 'dark' : 'light'); };
-
+  // Filter to ensure id is always a string
+  const nodeOptions: SelectOption[] = useMemo(() => {
+    return nodes
+      .filter((n): n is { data: { id: string; label?: string } } => typeof n.data?.id === 'string')
+      .map(n => ({
+        value: n.data.id,
+        label: `${n.data.label ?? 'N/A'} (${n.data.id.slice(0, 4)}…)`
+      }));
+  }, [nodes]);
 
   return (
     <div className="flex flex-col h-full p-4 space-y-5 overflow-y-auto no-scrollbar">
-
-      {/* Header section */}
-      <div className="flex justify-between items-center mb-1">
-        <h1 className="text-lg font-semibold text-text-base flex items-center gap-2">
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-primary"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>
-           {t('appTitle')}
-        </h1>
-         <div className="flex items-center gap-1">
-              <Button onClick={toggleLocale} variant="ghost" size="sm" icon={Languages} title={locale === 'en-US' ? 'Mudar para Português' : 'Switch to English'}>
-                  {locale === 'en-US' ? 'PT' : 'EN'}
-              </Button>
-              <Button onClick={toggleTheme} variant="ghost" size="sm" icon={theme === 'light' ? Moon : Sun} title={t(theme === 'light' ? 'switchToDarkMode' : 'switchToLightMode')} />
-         </div>
+      {/* Logo & Title */}
+      <div className="flex items-center gap-2 mb-4">
+        <img src="/logo.svg" alt="Netmap" className="w-6 h-6" />
+        <h2 className="text-xl font-bold">{t('appTitle')}</h2>
       </div>
 
-      {/* Load Graph Panel */}
+      {/* Locale & Theme */}
+      <div className="flex justify-end gap-2 mb-4">
+        <Button
+          onClick={() => setLocale(locale === 'en-US' ? 'pt-BR' : 'en-US')}
+          variant="ghost" size="sm" icon={Languages}
+          title={t(locale === 'en-US' ? 'switchToPortuguese' : 'switchToEnglish')}
+        >
+          {locale === 'en-US' ? 'PT' : 'EN'}
+        </Button>
+        <Button
+          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          variant="ghost" size="sm"
+          icon={theme === 'light' ? Moon : Sun}
+          title={t(theme === 'light' ? 'switchToDarkMode' : 'switchToLightMode')}
+        />
+      </div>
+
+      {/* Load Graph */}
       <Panel title={t('loadGraphTitle')} icon={UploadCloud}>
-            <div className="flex justify-between items-center mb-1">
-                 <label htmlFor="graph-input" className="label-text">
-                     {t('loadGraphLabel')}
-                 </label>
-                 <button
-                     type="button"
-                     onClick={handlePasteExample}
-                     className="text-accent-cyan hover:underline focus:outline-none text-xs p-0 font-medium"
-                     disabled={!stylesResolved}
-                 >
-                     {t('pasteExampleLink')}
-                 </button>
-            </div>
-          <TextAreaInput
-              id="graph-input"
-              label="" // Label handled above
-              rows={8}
-              className="font-mono text-xs leading-relaxed"
-              placeholder={`[Node A]\n[Node B]\n[Node A] -> [Node B]`}
-              value={graphInputText}
-              onChange={(e) => setGraphInputText(e.target.value)}
+        <div className="flex justify-between items-center mb-1">
+          <label htmlFor="graph-input" className="label-text">{t('loadGraphLabel')}</label>
+          <button
+            onClick={() => setGraphText(diabetesExampleSyntax)}
+            disabled={!stylesResolved}
+            className="text-accent-primary hover:underline text-xs font-medium"
+          >
+            {t('pasteExampleLink')}
+          </button>
+        </div>
+        <TextAreaInput
+          id="graph-input" rows={8} className="font-mono text-xs"
+          placeholder="[A]->[B]" value={graphText}
+          onChange={e => setGraphText(e.target.value)}
+          disabled={!stylesResolved}
+        />
+        <Button
+          variant="primary" className="w-full mt-2"
+          onClick={handleLoad}
+          disabled={!stylesResolved || !graphText.trim()}
+        >
+          {t('loadGraphButton')}
+        </Button>
+      </Panel>
+
+      {/* Layout Controls */}
+      <Panel title={t('layoutTitle')} icon={LayoutGrid}>
+        <div className="grid grid-cols-3 gap-2">
+          {availableLayouts.map(l => (
+            <Button
+              key={l}
+              onClick={() => setLayoutName(l)}
+              variant={currentLayout === l ? 'primary' : 'secondary'}
+              size="sm" className="w-full"
               disabled={!stylesResolved}
+            >
+              {l.charAt(0).toUpperCase() + l.slice(1)}
+            </Button>
+          ))}
+        </div>
+      </Panel>
+
+      {/* Editing & Tools */}
+      <Panel title={t('editingTitle')} icon={PlusCircle}>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <Button
+            onClick={() => {
+              const label = prompt(t('addNodePromptLabel'), t('addNodePromptDefault'));
+              if (label) addNode({ data: { id: genNodeId(), label } });
+            }}
+            variant="secondary" size="sm" className="w-full"
+            icon={PlusCircle} disabled={!stylesResolved}
+          >
+            {t('addNodeTitle')}
+          </Button>
+          <Button
+            onClick={() => selectedElementId && removeElement(selectedElementId)}
+            variant="danger" size="sm" className="w-full"
+            icon={Trash2} disabled={!selectedElementId || !stylesResolved}
+          >
+            {t('deleteSelectedTitle')}
+          </Button>
+        </div>
+
+        {/* Add Edge */}
+        <div className="border-t border-border pt-4 space-y-3 mb-4">
+          <h4 className="text-sm font-medium text-text-muted flex items-center gap-2">
+            <Link size={14} /> {t('addEdgeTitle')}
+          </h4>
+          <SelectInput
+            id="src" label={t('sourceNodeLabel')}
+            placeholderOption={{ value: '', label: t('selectSourcePlaceholder') }}
+            options={nodeOptions} value={srcRef}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSrcRef(e.target.value)}
+            disabled={!stylesResolved || nodeOptions.length === 0}
+          />
+          <SelectInput
+            id="tgt" label={t('targetNodeLabel')}
+            placeholderOption={{ value: '', label: t('selectTargetPlaceholder') }}
+            options={nodeOptions} value={tgtRef}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setTgtRef(e.target.value)}
+            disabled={!stylesResolved || nodeOptions.length === 0}
+          />
+          <TextInput
+            id="edge-label" label={t('edgeLabelLabel')}
+            value={edgeLabel} onChange={e => setEdgeLabel(e.target.value)}
+            disabled={!stylesResolved}
           />
           <Button
-              variant="primary"
-              className="w-full mt-2"
-              onClick={handleLoadGraph}
-              disabled={!stylesResolved || !graphInputText.trim()}
+            onClick={() => {
+              if (!srcRef || !tgtRef) { alert(t('addEdgeSelectNodesError')); return; }
+              addEdge({ data: { id: genEdgeId(), source: srcRef, target: tgtRef, label: edgeLabel || undefined } });
+              setSrcRef(''); setTgtRef(''); setEdgeLabel('');
+            }}
+            variant="secondary" size="sm" className="w-full"
+            icon={Link} disabled={!srcRef || !tgtRef || !stylesResolved}
           >
-              {t('loadGraphButton')}
+            {t('addEdgeTitle')}
           </Button>
+        </div>
+
+        <EditPanel />
       </Panel>
 
-      {/* Layout Controls Panel */}
-      <Panel title={t('layoutTitle')} icon={LayoutGrid}>
-          <div className="grid grid-cols-3 gap-2">
-              {availableLayouts.map((layout) => (
-                  <Button
-                      key={layout}
-                      onClick={() => setLayoutName(layout)}
-                      variant={currentLayout === layout ? 'primary' : 'secondary'}
-                      size="sm"
-                      className="w-full justify-center"
-                      disabled={!stylesResolved}
-                  >
-                      {layout.charAt(0).toUpperCase() + layout.slice(1)}
-                  </Button>
-              ))}
-          </div>
-      </Panel>
+      <div className="flex-grow" />
 
-       {/* Editing Placeholder Panel */}
-       <Panel title={t('editingTitle')} icon={Pencil}>
-            <p className="text-sm text-text-muted">{t('editingPlaceholder')}</p>
-        </Panel>
-
-      {/* Spacer */}
-      <div className="flex-grow"></div>
-
-      {/* Footer / Authorship */}
       <div className="mt-4 pt-4 text-center border-t border-border">
-           <p className="text-xs text-text-muted opacity-75">
-               {t('authorship')}
-           </p>
+        <p className="text-xs text-text-muted opacity-75">{t('authorship')}</p>
       </div>
     </div>
   );
