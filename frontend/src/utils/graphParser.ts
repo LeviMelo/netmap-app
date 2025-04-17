@@ -1,4 +1,3 @@
-// frontend/src/utils/graphParser.ts
 import { ElementDefinition } from 'cytoscape';
 
 // Define interfaces matching Cytoscape structure
@@ -8,10 +7,10 @@ interface ParsedElements {
 }
 
 // Regex patterns for parsing
-const nodeRegex = /^\s*\[(.+?)\](?:\s*\((?:id=([^,\)]+))?(?:,\s*label=([^,\)]+))?\))?\s*$/; // Matches [Label], [Label](id=id), [Label](label=alt_label), [Label](id=id,label=alt_label)
-const edgeRegex = /^\s*([^-\s>]+)\s*->\s*([^:\s]+)(?:\s*:\s*"(.+)")?\s*$/; // Matches [Source] -> [Target] : "Label" or SourceId -> TargetId
+const nodeRegex = /^\s*\[(.+?)\](?:\s*\((?:id=([^,\)]+))?(?:,\s*label=([^,\)]+))?\))?\s*$/;
+const edgeRegex = /^\s*([^-\s>]+)\s*->\s*([^:\s]+)(?:\s*:\s*"(.+)")?\s*$/;
 
-// Simple unique ID generator (replace with robust UUID later if needed)
+// Simple unique ID generator
 let nodeIdCounter = 0;
 let edgeIdCounter = 0;
 const generateNodeId = () => `n${nodeIdCounter++}`;
@@ -38,34 +37,26 @@ export function parseGraphSyntax(text: string): ParsedElements | null {
         // Try matching node
         const nodeMatch = trimmedLine.match(nodeRegex);
         if (nodeMatch) {
-            const label = nodeMatch[3] || nodeMatch[1]; // Use explicit label if provided, else use the bracket content
+            const label = nodeMatch[3] || nodeMatch[1];
             const explicitId = nodeMatch[2]?.trim();
-            const mapKey = explicitId || label; // Use explicit ID if present, otherwise label
+            const mapKey = explicitId || label;
 
             if (!nodeMap.has(mapKey)) {
                 const nodeId = explicitId || generateNodeId();
                 if (!explicitId) {
-                    // Only map generated IDs if no explicit ID was given for the label
                      nodeMap.set(label, nodeId);
                 } else {
-                     // Map explicit ID to itself (or the generated one if conflict, though explicit should be unique)
                     nodeMap.set(explicitId, nodeId);
-                     // Also map the label to this ID if the label isn't already mapped
                      if (!nodeMap.has(label)) {
                          nodeMap.set(label, nodeId);
                      }
                 }
-
                 nodes.push({
-                    data: {
-                        id: nodeId,
-                        label: label,
-                    },
-                    // Position can be added later if needed from syntax
+                    data: { id: nodeId, label: label },
                 });
                  console.log(`Parsed Node: ID=${nodeId}, Label=${label}, ExplicitID=${explicitId || 'N/A'}`);
             }
-            continue; // Move to next line after node match
+            continue;
         }
 
         // Try matching edge
@@ -73,22 +64,18 @@ export function parseGraphSyntax(text: string): ParsedElements | null {
         if (edgeMatch) {
             const sourceRef = edgeMatch[1].trim();
             const targetRef = edgeMatch[2].trim();
-            const edgeLabel = edgeMatch[3]?.trim() || undefined; // Use undefined if no label
+            const edgeLabel = edgeMatch[3]?.trim() || undefined;
 
             const sourceId = nodeMap.get(sourceRef);
             const targetId = nodeMap.get(targetRef);
 
             if (!sourceId) {
-                console.error(`Parser Error: Source node "${sourceRef}" not defined before edge.`);
-                // Optionally: Create the node on the fly? For now, error out.
-                // return null;
-                continue; // Skip edge if source not found
+                console.warn(`Parser Warning: Source node "${sourceRef}" not found or defined yet. Skipping edge.`);
+                continue;
             }
             if (!targetId) {
-                console.error(`Parser Error: Target node "${targetRef}" not defined before edge.`);
-                // Optionally: Create the node on the fly? For now, error out.
-                // return null;
-                 continue; // Skip edge if target not found
+                console.warn(`Parser Warning: Target node "${targetRef}" not found or defined yet. Skipping edge.`);
+                 continue;
             }
 
             const edgeId = generateEdgeId();
@@ -101,15 +88,14 @@ export function parseGraphSyntax(text: string): ParsedElements | null {
                 },
             });
             console.log(`Parsed Edge: ID=${edgeId}, Source=${sourceId}(${sourceRef}), Target=${targetId}(${targetRef}), Label=${edgeLabel || 'N/A'}`);
-            continue; // Move to next line
+            continue;
         }
 
-        // If neither matches, it's a syntax error
-        console.error(`Parser Error: Invalid syntax on line: "${trimmedLine}"`);
-        // return null; // Option: Halt parsing on first error
-         // Option: Skip the line and continue parsing
+        // If neither matches, log syntax error and continue
+        console.warn(`Parser Warning: Invalid syntax on line: "${trimmedLine}". Skipping line.`);
     }
 
      console.log("Final Node Map:", nodeMap);
+    // Return even if some lines had errors, allowing partial graphs
     return { nodes, edges };
 }

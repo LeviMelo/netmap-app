@@ -1,16 +1,15 @@
-// frontend/src/store.tsx
 import { create } from 'zustand';
 import { useEffect } from 'react';
 import {
     ElementDefinition,
-    Css // Import Css namespace for inner types
+    LayoutOptions,
+    Css
 } from 'cytoscape';
-import { LayoutOptions } from 'cytoscape'; // Import LayoutOptions
 
 // Use 'any' as a workaround for the incorrect TS error TS2724 regarding Stylesheet export
 type CytoscapeStylesheet = any;
 
-// Initial styles with placeholders/fallbacks - NO var() here initially
+// Initial styles with placeholders/fallbacks
 const initialStyleSheet: CytoscapeStylesheet = [
      { selector: 'node', style: { 'background-color': '#888', 'label': 'data(label)' } as Css.Node },
      { selector: 'edge', style: { 'line-color': '#ccc', 'target-arrow-color': '#ccc' } as Css.Edge },
@@ -21,7 +20,7 @@ export interface NodeData {
     id: string;
     label: string;
     color?: string;
-    shape?: string; // Use string type, Cytoscape handles known shapes
+    shape?: string;
 }
 export interface EdgeData {
     id: string;
@@ -38,8 +37,8 @@ interface GraphState {
   edges: ElementDefinition[];
   style: CytoscapeStylesheet; // Using 'any' workaround
   selectedElementId: string | null;
-  stylesResolved: boolean; // Flag to know when styles are ready
-  layoutName: string; // e.g., 'grid', 'cose', 'dagre'
+  stylesResolved: boolean;
+  layoutName: string; // Name of the selected layout
 
   // Actions
   setNodes: (nodes: ElementDefinition[]) => void;
@@ -65,7 +64,7 @@ export const useGraphStore = create<GraphState>((set) => ({
   ],
   style: initialStyleSheet, // Start with basic styles
   selectedElementId: null,
-  stylesResolved: false, // Initially false
+  stylesResolved: false, // Styles start unresolved
   layoutName: 'grid', // Default layout
 
   // Actions Implementation
@@ -83,31 +82,27 @@ export const useGraphStore = create<GraphState>((set) => ({
         edges: state.edges.map(e => e.data.id === id ? { ...e, data: { ...e.data, ...data } } : e)
   })),
   setSelectedElement: (id) => set({ selectedElementId: id }),
-  setResolvedStyle: (style) => set({ style: style, stylesResolved: true }), // Set flag when styles are resolved
+  setResolvedStyle: (style) => set({ style: style, stylesResolved: true }),
   setLayoutName: (name) => set({ layoutName: name }),
 }));
 
 // --- Hook to resolve CSS Variables ---
 export const useResolveCytoscapeStyles = () => {
-    // Get only the necessary parts from the store
     const setResolvedStyle = useGraphStore((state) => state.setResolvedStyle);
     const stylesResolved = useGraphStore((state) => state.stylesResolved);
 
     useEffect(() => {
-        // Only run once client-side AND if styles haven't been resolved yet
         if (typeof window === 'undefined' || stylesResolved) {
             return;
         }
 
-        // Helper to get computed style property safely
         const getCssVar = (varName: string, fallback: string): string => {
             const value = getComputedStyle(document.documentElement).getPropertyValue(varName.trim()).trim();
             return value || fallback;
         };
 
-        console.log("Running style resolution effect..."); // Debug log
+        console.log("Running style resolution effect...");
 
-        // Define the resolved stylesheet
         const resolvedStyleSheet: CytoscapeStylesheet = [
              {
                 selector: 'node',
@@ -119,10 +114,10 @@ export const useResolveCytoscapeStyles = () => {
                     'text-outline-width': 1,
                     'font-size': '12px',
                     'shape': 'ellipse',
-                    'width': '50px', // Use fixed size temporarily
-                    'height': '50px', // Use fixed size temporarily
-                    'padding': '0px',
-                } as Css.Node, // Cast inner style object
+                    'width': 'label', // Reverted to label for auto-sizing
+                    'height': 'label',
+                    'padding': '10px',
+                } as Css.Node,
             },
             {
                 selector: 'node:selected',
@@ -145,7 +140,7 @@ export const useResolveCytoscapeStyles = () => {
                     'text-background-opacity': 1,
                     'text-background-color': getCssVar('--color-secondary-dark', '#111827'),
                     'text-background-padding': '2px',
-                } as Css.Edge, // Cast inner style object
+                } as Css.Edge,
             },
             {
                 selector: 'edge:selected',
@@ -157,9 +152,7 @@ export const useResolveCytoscapeStyles = () => {
             },
         ];
 
-        // Update the store with resolved styles
         setResolvedStyle(resolvedStyleSheet);
 
-    // Depend only on the setter and the flag to ensure it runs just once effectively
     }, [setResolvedStyle, stylesResolved]);
 };
