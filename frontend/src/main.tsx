@@ -1,10 +1,14 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
+// frontend/src/main.tsx
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
+import './index.css'
+import { LocalizationProvider } from './hooks/useTranslations'; // Import provider
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <LocalizationProvider> {/* Wrap App */}
+      <App />
+    </LocalizationProvider>
+  </React.StrictMode>,
 )
