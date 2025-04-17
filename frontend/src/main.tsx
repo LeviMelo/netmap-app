@@ -1,14 +1,13 @@
-// frontend/src/main.tsx
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-import { LocalizationProvider } from './hooks/useTranslations'; // Import provider
+// src/main.tsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { LocalizationProvider } from './hooks/useTranslations';
+import './index.css';
 
+// Wrap the entire app in LocalizationProvider so t() works everywhere
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <LocalizationProvider> {/* Wrap App */}
-      <App />
-    </LocalizationProvider>
-  </React.StrictMode>,
-)
+  <LocalizationProvider>
+    <App />
+  </LocalizationProvider>
+);
