@@ -1,9 +1,11 @@
+// frontend/src/store.tsx
 import { create } from 'zustand';
 import { useEffect } from 'react';
 import {
     ElementDefinition,
     Css // Import Css namespace for inner types
 } from 'cytoscape';
+import { LayoutOptions } from 'cytoscape'; // Import LayoutOptions
 
 // Use 'any' as a workaround for the incorrect TS error TS2724 regarding Stylesheet export
 type CytoscapeStylesheet = any;
@@ -37,6 +39,7 @@ interface GraphState {
   style: CytoscapeStylesheet; // Using 'any' workaround
   selectedElementId: string | null;
   stylesResolved: boolean; // Flag to know when styles are ready
+  layoutName: string; // e.g., 'grid', 'cose', 'dagre'
 
   // Actions
   setNodes: (nodes: ElementDefinition[]) => void;
@@ -47,6 +50,7 @@ interface GraphState {
   updateElementData: (id: string, data: Partial<NodeData> | Partial<EdgeData>) => void;
   setSelectedElement: (id: string | null) => void;
   setResolvedStyle: (style: CytoscapeStylesheet) => void; // Use 'any' workaround
+  setLayoutName: (name: string) => void;
 }
 
 // --- Zustand Store Definition ---
@@ -62,6 +66,7 @@ export const useGraphStore = create<GraphState>((set) => ({
   style: initialStyleSheet, // Start with basic styles
   selectedElementId: null,
   stylesResolved: false, // Initially false
+  layoutName: 'grid', // Default layout
 
   // Actions Implementation
   setNodes: (nodes) => set({ nodes }),
@@ -79,6 +84,7 @@ export const useGraphStore = create<GraphState>((set) => ({
   })),
   setSelectedElement: (id) => set({ selectedElementId: id }),
   setResolvedStyle: (style) => set({ style: style, stylesResolved: true }), // Set flag when styles are resolved
+  setLayoutName: (name) => set({ layoutName: name }),
 }));
 
 // --- Hook to resolve CSS Variables ---

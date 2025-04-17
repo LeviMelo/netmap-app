@@ -1,7 +1,9 @@
+// frontend/src/components/GraphCanvas.tsx
 import React, { useRef, useCallback, memo } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs'; // Using simplified d.ts or require
 import { Core, LayoutOptions } from 'cytoscape';
 import { useGraphStore } from '../store';
+import coseBilkent from 'cytoscape-cose-bilkent'; // Example layout extension
 
 const GraphCanvas: React.FC = memo(() => {
   // Select state individually to prevent unnecessary re-renders from object reference changes
