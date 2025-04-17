@@ -33,5 +33,24 @@
     "editLabelLabel": "Label",
     "editColorLabel": "Color (Hex or Name)",
     "editShapeLabel": "Shape",
-    "editElementId": "Editing: {id} ({type})"
+    "editElementId": "Editing: {id} ({type})",
+    "metricsSidebarLabel": "Metrics Panel",
+    "graphMetrics": "Graph Metrics",
+    "close": "Close",
+    "nodes": "Nodes",
+    "edges": "Edges",
+    "shareSidebarLabel": "Share & Export Panel",
+    "shareExport": "Share & Export",
+    "format": "Format",
+    "json": "JSON",
+    "text": "Text DSL",
+    "png": "PNG Image",
+    "includePositions": "Include positions",
+    "includeStyles": "Include styles",
+    "pngWidth": "Width (px)",
+    "pngHeight": "Height (px)",
+    "download": "Download",
+    "metrics": "Metrics",
+    "share": "Share"
   }
+  

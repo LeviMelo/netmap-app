@@ -33,5 +33,24 @@
     "editLabelLabel": "Rótulo",
     "editColorLabel": "Cor (Hex ou Nome)",
     "editShapeLabel": "Forma",
-    "editElementId": "Editando: {id} ({type})"
+    "editElementId": "Editando: {id} ({type})",
+    "metricsSidebarLabel": "Painel de Métricas",
+    "graphMetrics": "Métricas do Grafo",
+    "close": "Fechar",
+    "nodes": "Nós",
+    "edges": "Arestas",
+    "shareSidebarLabel": "Painel Compartilhar & Exportar",
+    "shareExport": "Compartilhar & Exportar",
+    "format": "Formato",
+    "json": "JSON",
+    "text": "Texto DSL",
+    "png": "Imagem PNG",
+    "includePositions": "Incluir posições",
+    "includeStyles": "Incluir estilos",
+    "pngWidth": "Largura (px)",
+    "pngHeight": "Altura (px)",
+    "download": "Baixar",
+    "metrics": "Métricas",
+    "share": "Compartilhar"
   }
+  
