@@ -51,6 +51,15 @@
     "pngHeight": "Height (px)",
     "download": "Download",
     "metrics": "Metrics",
-    "share": "Share"
+    "share": "Share",
+    "degreeCentrality": "Degree Centrality",
+    "applyOverlay": "Apply Overlay",
+    "resetOverlay": "Reset Overlay",
+    "topNodes": "Top Nodes",
+    "bottomNodes": "Bottom Nodes",
+    "degreeDistribution": "Degree Distribution",
+    "overlayMetric": "Overlay Metric",
+    "overlayNone": "None",
+    "overlayDegree": "Degree Centrality"   
   }
   

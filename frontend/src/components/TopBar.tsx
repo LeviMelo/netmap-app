@@ -19,19 +19,21 @@ const TopBar: React.FC<Props> = ({ onMetricsToggle, onShareToggle }) => {
         <h1 className="text-lg font-semibold">{t('appTitle')}</h1>
       </div>
       <div className="flex items-center gap-2">
+        {/* Metrics button only toggles metrics */}
         <Button
           variant="ghost"
           size="sm"
           icon={BarChart2}
           title={t('metrics')}
-          onClick={() => { onShareToggle(); onMetricsToggle(); }}
+          onClick={onMetricsToggle}
         />
+        {/* Share button only toggles share */}
         <Button
           variant="ghost"
           size="sm"
           icon={Share2}
           title={t('share')}
-          onClick={() => { onMetricsToggle(); onShareToggle(); }}
+          onClick={onShareToggle}
         />
       </div>
     </header>

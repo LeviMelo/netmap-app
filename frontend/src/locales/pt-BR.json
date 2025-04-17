@@ -51,6 +51,15 @@
     "pngHeight": "Altura (px)",
     "download": "Baixar",
     "metrics": "Métricas",
-    "share": "Compartilhar"
+    "share": "Compartilhar",
+    "degreeCentrality": "Centralidade de Grau",
+    "applyOverlay": "Aplicar Sobreposição",
+    "resetOverlay": "Limpar Sobreposição",
+    "topNodes":  "Principais Nós",
+    "bottomNodes": "Nós com Menos Conexões",
+    "degreeDistribution": "Distribuição de Grau",
+    "overlayMetric": "Métrica de Sobreposição",
+    "overlayNone": "Nenhuma",
+    "overlayDegree": "Centralidade de Grau"
   }
   

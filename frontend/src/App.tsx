@@ -1,7 +1,9 @@
 // src/App.tsx
-import { useRef, useState } from 'react';
+// Remove useResolveCytoscapeStyles entirely and just render GraphCanvas with our new
+// always‑ready stylesheet.
+
+import React, { useRef, useState } from 'react';
 import { Core } from 'cytoscape';
-import { useResolveCytoscapeStyles } from './store';
 import TopBar from './components/TopBar';
 import Sidebar from './components/Sidebar';
 import GraphCanvas from './components/GraphCanvas';
@@ -9,17 +11,17 @@ import MetricsSidebar from './components/MetricsSidebar';
 import ShareSidebar from './components/ShareSidebar';
 
 const App: React.FC = () => {
-  useResolveCytoscapeStyles();
-
+  // keep ref to Cytoscape instance
   const cyRef = useRef<Core | null>(null);
+
+  // control right‑side panels
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+
+  // left pane resizer
   const [leftWidth, setLeftWidth] = useState(300);
   const startX = useRef(0);
   const startW = useRef(300);
-
-  const handleCyInit = (cy: Core) => { cyRef.current = cy; };
-
   const onMouseDown = (e: React.MouseEvent) => {
     startX.current = e.clientX;
     startW.current = leftWidth;
@@ -35,12 +37,24 @@ const App: React.FC = () => {
     document.removeEventListener('mouseup', onMouseUp);
   };
 
+  // callbacks from GraphCanvas
+  const handleCyInit = (cy: Core) => {
+    cyRef.current = cy;
+  };
+
+  // keep only one sidebar open at a time
+  const toggleMetrics = () => {
+    setMetricsOpen((o) => !o);
+    if (shareOpen) setShareOpen(false);
+  };
+  const toggleShare = () => {
+    setShareOpen((s) => !s);
+    if (metricsOpen) setMetricsOpen(false);
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen">
-      <TopBar
-        onMetricsToggle={() => setMetricsOpen(m => !m)}
-        onShareToggle={() => setShareOpen(s => !s)}
-      />
+      <TopBar onMetricsToggle={toggleMetrics} onShareToggle={toggleShare} />
 
       <div className="flex flex-1 overflow-hidden">
         <div
@@ -58,8 +72,16 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <MetricsSidebar open={metricsOpen} onClose={() => setMetricsOpen(false)} />
-      <ShareSidebar open={shareOpen} onClose={() => setShareOpen(false)} cyRef={cyRef} />
+      <MetricsSidebar
+        open={metricsOpen}
+        onClose={() => setMetricsOpen(false)}
+        cyRef={cyRef}
+      />
+      <ShareSidebar
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        cyRef={cyRef}
+      />
     </div>
   );
 };

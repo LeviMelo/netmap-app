@@ -73,8 +73,8 @@ const ShareSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
     <aside
       className={`
         fixed right-0 top-0 h-full w-80
-        bg-bg-secondary/50 dark:bg-bg-secondary/50
-        backdrop-blur-md backdrop-filter
+        bg-bg-secondary/30 light:bg-bg-secondary/30 dark:bg-bg-secondary/50
+        backdrop-blur-lg backdrop-filter
         border-l border-border
         rounded-l-lg shadow-lg
         transform transition-transform
@@ -86,14 +86,18 @@ const ShareSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
     >
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h2 id="share-title" className="text-lg font-semibold">
-          {t('shareExport')}
+          {t('shareSidebarLabel')}
         </h2>
-        <button onClick={onClose} aria-label={t('close')}>
+        <button
+          onClick={onClose}
+          aria-label={t('close')}
+          className="text-xl leading-none"
+        >
           &times;
         </button>
       </div>
       <div className="p-4 space-y-4">
-        {/* Format */}
+        {/* Format selector */}
         <div>
           <label className="block font-medium mb-1">{t('format')}</label>
           <select
