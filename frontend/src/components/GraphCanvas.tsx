@@ -7,30 +7,28 @@ import cytoscape, {
     EdgeSingular
 } from 'cytoscape';
 import { useGraphStore } from '../store';
-import { useTranslations } from '../hooks/useTranslations'; // Import i18n hook
+import { useTranslations } from '../hooks/useTranslations';
 
 // --- Use standard ES Imports for layout extensions ---
 import coseBilkent from 'cytoscape-cose-bilkent';
 import dagre from 'cytoscape-dagre';
-// import cola from 'cytoscape-cola'; // Keep commented unless installed
+// import cola from 'cytoscape-cola';
 
-// --- Register layout extensions using the imported variables ---
+// --- Register layout extensions ---
 let layoutsRegistered = false;
 if (typeof window !== 'undefined' && !layoutsRegistered) {
     try {
         cytoscape.use(coseBilkent);
         cytoscape.use(dagre);
-        // cytoscape.use(cola);
         layoutsRegistered = true;
-        console.log("Cytoscape layouts registered via import.");
+        console.log("Cytoscape layouts registered.");
     } catch (e) {
         console.warn("Could not register layout extension(s):", e);
     }
 }
 
 const GraphCanvas: React.FC = memo(() => {
-  const { t } = useTranslations(); // Use i18n hook
-  // Select state individually
+  const { t } = useTranslations();
   const nodes = useGraphStore((state) => state.nodes);
   const edges = useGraphStore((state) => state.edges);
   const style = useGraphStore((state) => state.style);
@@ -58,15 +56,16 @@ const GraphCanvas: React.FC = memo(() => {
 
       switch(layoutName) {
           case 'cose':
-              currentLayoutName = 'cose-bilkent'; // Prefer cose-bilkent if registered
+              currentLayoutName = 'cose-bilkent';
               specificOptions = {
-                  nodeRepulsion: (_node: NodeSingular) => 4500,
-                  idealEdgeLength: (_edge: EdgeSingular) => 100,
-                  gravity: 0.1,
-                  numIter: 1000,
-                  randomize: true,
-                  nodeDimensionsIncludeLabels: true,
-                  uniformNodeDimensions: false,
+                  // --- Start with fewer/default options for Cose-Bilkent ---
+                  // nodeRepulsion: (_node: NodeSingular) => 4500, // TRY commenting out
+                  // idealEdgeLength: (_edge: EdgeSingular) => 100, // TRY commenting out
+                  // gravity: 0.1, // Default is often okay
+                  // numIter: 1000, // Default is 2500
+                  randomize: true, // Default is true
+                  nodeDimensionsIncludeLabels: false, // <-- TRY false first
+                  // uniformNodeDimensions: false, // Default is false
               };
               break;
           case 'dagre':
@@ -74,36 +73,38 @@ const GraphCanvas: React.FC = memo(() => {
               specificOptions = {
                   rankDir: 'TB',
                   spacingFactor: 1.2,
-                  nodeDimensionsIncludeLabels: true,
+                  nodeDimensionsIncludeLabels: false, // <-- TRY false first
               };
               break;
-           case 'grid':
-                currentLayoutName = 'grid';
-                specificOptions = { spacingFactor: 1.2 };
-                break;
-           case 'circle':
-                currentLayoutName = 'circle';
-                specificOptions = { spacingFactor: 1.2 };
-                break;
-            case 'breadthfirst':
-                currentLayoutName = 'breadthfirst';
-                specificOptions = { spacingFactor: 1.2, directed: true };
-                break;
+           // Other cases: grid, circle, breadthfirst
+           case 'grid': specificOptions = { name: 'grid', spacingFactor: 1.2 }; break;
+           case 'circle': specificOptions = { name: 'circle', spacingFactor: 1.2 }; break;
+           case 'breadthfirst': specificOptions = { name: 'breadthfirst', spacingFactor: 1.2, directed: true }; break;
           default:
               currentLayoutName = 'grid';
               specificOptions = { spacingFactor: 1.2 };
       }
+      // Assign name explicitly before merging
+      specificOptions.name = currentLayoutName;
       // Assert final type
-      return { name: currentLayoutName, ...baseOptions, ...specificOptions } as LayoutOptions;
+      return { ...baseOptions, ...specificOptions } as LayoutOptions;
   }, [layoutName]);
 
   // Function to run layout
   const runLayout = useCallback(() => {
       const cy = cyRef.current;
       if (cy) {
-          console.log(`Running layout: ${graphLayout.name}`);
-          cy.stop(true, true);
-          cy.layout(graphLayout).run();
+          console.log(`Running layout: ${graphLayout.name} with options:`, graphLayout);
+          cy.stop(true, true); // Stop previous layout/animations
+          try {
+              cy.layout(graphLayout).run();
+          } catch (error) {
+              console.error(`Error running layout ${graphLayout.name}:`, error);
+              // TODO: Add user feedback about layout error
+              alert(`Layout Error: Failed to apply '${graphLayout.name}' layout. Check console.`);
+               // Optionally try falling back to a safe layout like grid
+               // cy.layout({ name: 'grid', fit: true, padding: 30 }).run();
+          }
       }
   }, [graphLayout]);
 
@@ -138,6 +139,9 @@ const GraphCanvas: React.FC = memo(() => {
           </div>
       );
   }
+
+  // Add console log for elements right before render for debugging
+  // console.log("Rendering elements:", JSON.stringify(elements.slice(0, 5))); // Log first few elements
 
   return (
     <div className="w-full h-full bg-gray-900 overflow-hidden">
