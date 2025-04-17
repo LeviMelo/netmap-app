@@ -1,68 +1,75 @@
+/* frontend/src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Define CSS variables (as before) */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Default Dark Mode */
+  --color-primary-dark: #4f46e5;   /* Indigo 600 */
+  --color-secondary-dark: #111827; /* Gray 900 */
+  --color-accent-cyan: #22d3ee;    /* Cyan 400 */
+  --color-accent-gold: #facc15;    /* Yellow 400 */
+  --color-text-primary-dark: #f3f4f6; /* Gray 100 */
+  --color-text-secondary-dark: #9ca3af; /* Gray 400 */
+  --color-border-dark: #374151;     /* Gray 700 */
+  --color-danger: #ef4444; /* Red 500 */
+  --color-success: #22c55e; /* Green 500 */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Light Mode Variables */
+  --color-primary-light: #6366f1; /* Indigo 500 */
+  --color-secondary-light: #ffffff; /* White */
+  --color-accent-cyan-light: #06b6d4; /* Cyan 500 */
+  --color-accent-gold-light: #eab308; /* Yellow 500 */
+  --color-text-primary-light: #1f2937; /* Gray 800 */
+  --color-text-secondary-light: #6b7280; /* Gray 500 */
+  --color-border-light: #e5e7eb; /* Gray 200 */
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* Light Mode override */
+html.light {
+  --color-primary-dark: var(--color-primary-light);
+  --color-secondary-dark: var(--color-secondary-light);
+  --color-accent-cyan: var(--color-accent-cyan-light);
+  --color-accent-gold: var(--color-accent-gold-light);
+  --color-text-primary-dark: var(--color-text-primary-light);
+  --color-text-secondary-dark: var(--color-text-secondary-light);
+  --color-border-dark: var(--color-border-light);
 }
 
+/* Base body styling */
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  @apply bg-secondary-dark text-text-primary-dark antialiased;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* Define reusable component classes using @apply */
+@layer components {
+  .panel {
+    @apply bg-gray-800 border-border-dark p-4 rounded-md; /* Base panel style */
   }
-  a:hover {
-    color: #747bff;
+  .btn {
+     @apply px-4 py-2 rounded-md font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-secondary-dark;
   }
-  button {
-    background-color: #f9f9f9;
+  .btn-primary {
+    @apply btn bg-primary-dark text-white hover:bg-indigo-700 focus:ring-primary-dark;
   }
+  .btn-secondary {
+     @apply btn bg-gray-600 text-text-primary-dark hover:bg-gray-500 focus:ring-gray-500;
+  }
+   .btn-danger {
+      @apply btn bg-danger text-white hover:bg-red-600 focus:ring-danger;
+  }
+   .input-text {
+      @apply block w-full px-3 py-2 bg-gray-700 border border-border-dark rounded-md text-text-primary-dark placeholder-text-secondary-dark focus:outline-none focus:ring-1 focus:ring-accent-cyan focus:border-accent-cyan sm:text-sm;
+  }
+  .label-text {
+      @apply block text-sm font-medium text-text-secondary-dark mb-1;
+  }
+  .heading-1 {
+      @apply text-xl font-bold text-accent-cyan mb-4;
+  }
+    .heading-2 {
+        @apply text-lg font-semibold text-accent-gold mt-6 mb-2;
+    }
 }
