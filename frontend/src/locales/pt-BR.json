@@ -1,0 +1,16 @@
+{
+    "appTitle": "Netmap",
+    "loadGraphTitle": "Carregar Grafo",
+    "loadGraphLabel": "Insira a definição do grafo ou",
+    "pasteExampleLink": "cole o exemplo",
+    "loadGraphButton": "Carregar Grafo",
+    "layoutTitle": "Layout",
+    "editingTitle": "Edição",
+    "editingPlaceholder": "Controles de edição aqui depois.",
+    "authorship": "Netmap por Levi de Melo",
+    "loadingStyles": "Carregando Estilos...",
+    "parseErrorAlert": "Erro ao processar sintaxe do grafo. Verifique o console e o formato.",
+    "parserWarningSourceNotFound": "Aviso do Parser: Nó de origem \"{node}\" não encontrado ou definido ainda. Pulando aresta.",
+    "parserWarningTargetNotFound": "Aviso do Parser: Nó de destino \"{node}\" não encontrado ou definido ainda. Pulando aresta.",
+    "parserWarningInvalidSyntax": "Aviso do Parser: Sintaxe inválida na linha: \"{line}\". Pulando linha."
+  }

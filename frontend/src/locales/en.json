@@ -1,0 +1,16 @@
+{
+    "appTitle": "Netmap",
+    "loadGraphTitle": "Load Graph",
+    "loadGraphLabel": "Enter graph definition or",
+    "pasteExampleLink": "paste example",
+    "loadGraphButton": "Load Graph",
+    "layoutTitle": "Layout",
+    "editingTitle": "Editing",
+    "editingPlaceholder": "Editing controls here later.",
+    "authorship": "Netmap by Levi de Melo",
+    "loadingStyles": "Loading Styles...",
+    "parseErrorAlert": "Error parsing graph syntax. Check console and format.",
+    "parserWarningSourceNotFound": "Parser Warning: Source node \"{node}\" not found or defined yet. Skipping edge.",
+    "parserWarningTargetNotFound": "Parser Warning: Target node \"{node}\" not found or defined yet. Skipping edge.",
+    "parserWarningInvalidSyntax": "Parser Warning: Invalid syntax on line: \"{line}\". Skipping line."
+  }

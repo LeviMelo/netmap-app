@@ -7,28 +7,29 @@ import cytoscape, {
     EdgeSingular
 } from 'cytoscape';
 import { useGraphStore } from '../store';
+import { useTranslations } from '../hooks/useTranslations'; // Import i18n hook
 
-// --- Require and Register layout extensions ---
+// --- Use standard ES Imports for layout extensions ---
+import coseBilkent from 'cytoscape-cose-bilkent';
+import dagre from 'cytoscape-dagre';
+// import cola from 'cytoscape-cola'; // Keep commented unless installed
+
+// --- Register layout extensions using the imported variables ---
 let layoutsRegistered = false;
 if (typeof window !== 'undefined' && !layoutsRegistered) {
     try {
-        // Use require for better compatibility with how extensions often expect to be loaded
-        const coseBilkent = require('cytoscape-cose-bilkent');
-        const dagre = require('cytoscape-dagre');
-        // const cola = require('cytoscape-cola'); // If needed
-
         cytoscape.use(coseBilkent);
         cytoscape.use(dagre);
         // cytoscape.use(cola);
-
         layoutsRegistered = true;
-        console.log("Cytoscape layouts registered via require().");
+        console.log("Cytoscape layouts registered via import.");
     } catch (e) {
         console.warn("Could not register layout extension(s):", e);
     }
 }
 
 const GraphCanvas: React.FC = memo(() => {
+  const { t } = useTranslations(); // Use i18n hook
   // Select state individually
   const nodes = useGraphStore((state) => state.nodes);
   const edges = useGraphStore((state) => state.edges);
@@ -46,12 +47,11 @@ const GraphCanvas: React.FC = memo(() => {
 
   // Define layout options dynamically based on selected name
   const graphLayout = useMemo((): LayoutOptions => {
-      // console.log(`Setting layout options for: ${layoutName}`);
       const baseOptions = {
             padding: 30,
-            animate: true, // Use animation for layout transitions
-            animationDuration: 500, // Duration in ms
-            fit: true, // Whether to fit the viewport to the graph
+            animate: true,
+            animationDuration: 500,
+            fit: true,
       };
       let specificOptions: any = {};
       let currentLayoutName = layoutName;
@@ -65,14 +65,14 @@ const GraphCanvas: React.FC = memo(() => {
                   gravity: 0.1,
                   numIter: 1000,
                   randomize: true,
-                  nodeDimensionsIncludeLabels: true, // Important for label overlap avoidance
+                  nodeDimensionsIncludeLabels: true,
                   uniformNodeDimensions: false,
               };
               break;
           case 'dagre':
               currentLayoutName = 'dagre';
               specificOptions = {
-                  rankDir: 'TB', // Top to bottom
+                  rankDir: 'TB',
                   spacingFactor: 1.2,
                   nodeDimensionsIncludeLabels: true,
               };
@@ -90,10 +90,10 @@ const GraphCanvas: React.FC = memo(() => {
                 specificOptions = { spacingFactor: 1.2, directed: true };
                 break;
           default:
-              console.warn(`Unknown layout name "${layoutName}", falling back to grid.`);
               currentLayoutName = 'grid';
               specificOptions = { spacingFactor: 1.2 };
       }
+      // Assert final type
       return { name: currentLayoutName, ...baseOptions, ...specificOptions } as LayoutOptions;
   }, [layoutName]);
 
@@ -102,7 +102,7 @@ const GraphCanvas: React.FC = memo(() => {
       const cy = cyRef.current;
       if (cy) {
           console.log(`Running layout: ${graphLayout.name}`);
-          cy.stop(true, true); // Stop previous animations
+          cy.stop(true, true);
           cy.layout(graphLayout).run();
       }
   }, [graphLayout]);
@@ -112,7 +112,7 @@ const GraphCanvas: React.FC = memo(() => {
     if (cyRef.current && stylesResolved) {
       runLayout();
     }
-  }, [elements, runLayout, stylesResolved]); // dependencies determine when layout runs
+  }, [elements, runLayout, stylesResolved]);
 
   // Cytoscape core initialization and event binding
   const handleCyInit = useCallback((cyInstance: Core) => {
@@ -120,35 +120,31 @@ const GraphCanvas: React.FC = memo(() => {
     cyRef.current = cyInstance;
     cyInstance.ready(() => {
          console.log("Cytoscape core ready. Applying events.");
-         // Layout is handled by useEffect, just center initially
          cyInstance.center();
-
          // Event Listeners
-         cyInstance.removeAllListeners(); // Ensure clean listeners on re-init (dev mode)
-         cyInstance.on('tap', (event) => {
-           if (event.target === cyInstance) setSelectedElement(null);
-         });
+         cyInstance.removeAllListeners();
+         cyInstance.on('tap', (event) => { if (event.target === cyInstance) setSelectedElement(null); });
          cyInstance.on('tap', 'node', (event) => setSelectedElement(event.target.id()));
          cyInstance.on('tap', 'edge', (event) => setSelectedElement(event.target.id()));
     });
-  }, [setSelectedElement]); // Dependency on setter
+  }, [setSelectedElement]);
 
 
   // Render loading state until styles are resolved
   if (!stylesResolved) {
       return (
           <div className="w-full h-full flex items-center justify-center bg-gray-900 text-text-secondary-dark">
-              <p>Loading Styles...</p>
+              <p>{t('loadingStyles')}</p>
           </div>
       );
   }
 
   return (
-    <div className="w-full h-full bg-gray-900 overflow-hidden"> {/* Standard bg */}
+    <div className="w-full h-full bg-gray-900 overflow-hidden">
       <CytoscapeComponent
         elements={elements}
         stylesheet={style}
-        layout={{ name: 'preset' }} // Layouts controlled via useEffect/runLayout
+        layout={{ name: 'preset' }} // Initial layout only
         cy={handleCyInit}
         style={{ width: '100%', height: '100%' }}
         minZoom={0.1}

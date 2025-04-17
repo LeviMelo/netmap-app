@@ -2,7 +2,7 @@
 import GraphCanvas from './components/GraphCanvas';
 import Sidebar from './components/Sidebar';
 import { useResolveCytoscapeStyles } from './store';
-// No useEffect needed here anymore
+// No need for useTranslations here if App shell text is static or handled in Sidebar
 
 function App() {
   // Resolve styles on app mount
@@ -10,12 +10,12 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen bg-secondary-dark text-text-primary-dark overflow-hidden">
-      <div className="w-1/4 min-w-[250px] h-full bg-gray-800 border-r border-border-dark p-4 overflow-y-auto">
-         <h1 className="heading-1">Concept Map Builder</h1>
-         <Sidebar />
+      {/* Sidebar Area */}
+      <div className="w-1/3 min-w-[320px] max-w-md h-full bg-gray-800 border-r border-border-dark overflow-y-auto shadow-lg"> {/* Adjusted width */}
+         <Sidebar /> {/* Sidebar handles its own content and title */}
       </div>
-      <div className="flex-1 h-full">
-        {/* Conditionally render GraphCanvas only after styles are resolved */}
+      {/* Main Canvas Area */}
+      <div className="flex-1 h-full relative">
         <GraphCanvas />
       </div>
     </div>
