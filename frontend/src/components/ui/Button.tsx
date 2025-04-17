@@ -10,22 +10,15 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     icon?: LucideIcon;
     iconPosition?: 'left' | 'right';
     children?: React.ReactNode;
-    title?: string; // Add title prop for accessibility/tooltips
+    title?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
-    children,
-    variant = 'primary',
-    size = 'md',
-    icon: Icon,
-    iconPosition = 'left',
-    className = '',
-    title = '', // Default title
-    ...props
+    children, variant = 'primary', size = 'md', icon: Icon, iconPosition = 'left', className = '', title = '', ...props
 }) => {
-    const baseClass = 'btn'; // Uses .btn from index.css
+    const baseClass = 'btn'; // Base class from index.css
 
-    // ** CORRECTED MAPPINGS **
+    // Map variant prop to the corresponding class defined in index.css
     const variantClass: Record<ButtonVariant, string> = {
         primary: 'btn-primary',
         secondary: 'btn-secondary',
@@ -34,6 +27,7 @@ const Button: React.FC<ButtonProps> = ({
         ghost: 'btn-ghost',
     };
 
+    // Define size-specific padding/text size classes directly
     const sizeStyles: Record<ButtonSize, string> = {
         sm: 'px-3 py-1.5 text-xs',
         md: 'px-4 py-2 text-sm',
@@ -45,17 +39,15 @@ const Button: React.FC<ButtonProps> = ({
         md: 'w-4 h-4',
         lg: 'w-5 h-5',
     };
-    // ** END CORRECTIONS **
 
     const iconMargin = children ? (iconPosition === 'left' ? 'mr-1.5' : 'ml-1.5') : '';
-
-    // Determine accessible title: use explicit title prop, or children if it's a simple string
     const accessibleTitle = title || (typeof children === 'string' ? children : undefined);
 
     return (
         <button
+            // Apply base, variant, size, and custom classes
             className={`${baseClass} ${variantClass[variant]} ${sizeStyles[size]} ${className}`}
-            title={accessibleTitle} // Add title attribute
+            title={accessibleTitle}
             {...props}
         >
             {Icon && iconPosition === 'left' && <Icon className={`${iconSizeStyles[size]} ${iconMargin}`} aria-hidden="true" />}

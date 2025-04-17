@@ -12,5 +12,7 @@
     "parseErrorAlert": "Error parsing graph syntax. Check console and format.",
     "parserWarningSourceNotFound": "Parser Warning: Source node \"{node}\" not found or defined yet. Skipping edge.",
     "parserWarningTargetNotFound": "Parser Warning: Target node \"{node}\" not found or defined yet. Skipping edge.",
-    "parserWarningInvalidSyntax": "Parser Warning: Invalid syntax on line: \"{line}\". Skipping line."
+    "parserWarningInvalidSyntax": "Parser Warning: Invalid syntax on line: \"{line}\". Skipping line.",
+    "switchToDarkMode": "Switch to Dark Mode",
+    "switchToLightMode": "Switch to Light Mode"
   }

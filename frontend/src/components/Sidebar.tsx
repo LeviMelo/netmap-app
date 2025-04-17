@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useGraphStore } from '../store';
-import { parseGraphSyntax } from '../utils/graphParser';
+import { parseGraphSyntax } from '../utils/graphParser'; // Import parser
 import { diabetesExampleSyntax } from '../constants/exampleGraph';
 import { useTranslations } from '../hooks/useTranslations';
 import Panel from './ui/Panel';
 import Button from './ui/Button';
 import TextAreaInput from './ui/TextAreaInput';
-// Correct icon imports - remove unused ones
-import { UploadCloud, LayoutGrid, Languages, Pencil, Sun, Moon } from 'lucide-react';
+import { UploadCloud, LayoutGrid, Languages, Pencil, Sun, Moon } from 'lucide-react'; // Correct icons
 
 const availableLayouts = ['grid', 'cose', 'circle', 'breadthfirst', 'dagre'];
 
@@ -16,32 +15,40 @@ const Sidebar: React.FC = () => {
   const [graphInputText, setGraphInputText] = useState<string>('');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
+  // Apply theme class effect
   useEffect(() => {
       const root = window.document.documentElement;
       root.classList.remove(theme === 'light' ? 'dark' : 'light');
       root.classList.add(theme);
   }, [theme]);
 
-  // ** CORRECTED ZUSTAND STATE SELECTION **
-  const setNodes = useGraphStore((state) => state.setNodes);
-  const setEdges = useGraphStore((state) => state.setEdges);
-  const stylesResolved = useGraphStore((state) => state.stylesResolved);
-  const currentLayout = useGraphStore((state) => state.layoutName);
-  const setLayoutName = useGraphStore((state) => state.setLayoutName);
-  // ** END CORRECTION **
+  // Select state and actions correctly from Zustand store
+  const { setNodes, setEdges, stylesResolved, currentLayout, setLayoutName } = useGraphStore(
+      (state) => ({
+          setNodes: state.setNodes,
+          setEdges: state.setEdges,
+          stylesResolved: state.stylesResolved,
+          currentLayout: state.layoutName,
+          setLayoutName: state.setLayoutName,
+      })
+  );
 
-
+  // ** USE the state setters **
   const handleLoadGraph = () => {
-     const parsedData = parseGraphSyntax(graphInputText, t);
+     const parsedData = parseGraphSyntax(graphInputText, t); // Pass 't'
      if (parsedData) {
-         setNodes(parsedData.nodes);
-         setEdges(parsedData.edges);
+         setNodes(parsedData.nodes); // Actually use setNodes
+         setEdges(parsedData.edges); // Actually use setEdges
      } else {
          alert(t('parseErrorAlert'));
      }
   };
 
-  const handlePasteExample = () => { setGraphInputText(diabetesExampleSyntax); };
+  // ** USE the handler **
+  const handlePasteExample = () => {
+      setGraphInputText(diabetesExampleSyntax);
+  };
+
   const toggleLocale = () => { setLocale(locale === 'en-US' ? 'pt-BR' : 'en-US'); };
   const toggleTheme = () => { setTheme(theme === 'light' ? 'dark' : 'light'); };
 
@@ -51,40 +58,40 @@ const Sidebar: React.FC = () => {
 
       {/* Header section */}
       <div className="flex justify-between items-center mb-1">
-        {/* App Title */}
         <h1 className="text-lg font-semibold text-text-base flex items-center gap-2">
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-primary"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>
+           <svg /* App Icon SVG */ width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-primary"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>
            {t('appTitle')}
         </h1>
-         <div className="flex items-center gap-1"> {/* Reduced gap */}
-              {/* Language Toggle */}
+         <div className="flex items-center gap-1">
               <Button onClick={toggleLocale} variant="ghost" size="sm" icon={Languages} title={locale === 'en-US' ? 'Mudar para Português' : 'Switch to English'}>
                   {locale === 'en-US' ? 'PT' : 'EN'}
               </Button>
-               {/* Theme Toggle */}
-               <Button onClick={toggleTheme} variant="ghost" size="sm" icon={theme === 'light' ? Moon : Sun} title={theme === 'light' ? 'Mudar para modo escuro' : 'Switch to Light Mode'} /> {/* Closing tag was correct here before, just verifying */}
+              {/* ** USE the corrected translation keys ** */}
+              <Button onClick={toggleTheme} variant="ghost" size="sm" icon={theme === 'light' ? Moon : Sun} title={t(theme === 'light' ? 'switchToDarkMode' : 'switchToLightMode')} />
          </div>
       </div>
 
       {/* Load Graph Panel */}
       <Panel title={t('loadGraphTitle')} icon={UploadCloud}>
+            {/* ** RESTRUCTURED LABEL and BUTTON ** */}
+            <div className="flex justify-between items-center mb-1">
+                 <label htmlFor="graph-input" className="label-text">
+                     {t('loadGraphLabel')}
+                 </label>
+                 <button
+                     type="button"
+                     onClick={handlePasteExample} // ** USE the handler **
+                     className="text-accent-cyan hover:underline focus:outline-none text-xs p-0 font-medium"
+                     disabled={!stylesResolved} // Disable if styles not ready
+                 >
+                     {t('pasteExampleLink')}
+                 </button>
+            </div>
           <TextAreaInput
               id="graph-input"
-              // ** CORRECTED LABEL JSX ASSIGNMENT **
-              // Define the label content separately for clarity
-              label={
-                  <span className="flex justify-between items-center w-full">
-                    <span>{t('loadGraphLabel')}</span>
-                    <button
-                        type="button" // Important for buttons inside labels
-                        onClick={handlePasteExample}
-                        className="text-accent-cyan hover:underline focus:outline-none text-xs p-0 font-medium"
-                    >
-                        {t('pasteExampleLink')}
-                    </button>
-                  </span>
-              }
-              // ** END CORRECTION **
+              // Label prop is now just for association, content is handled above
+              label="" // Pass empty string or omit if component handles no label
+              aria-labelledby="graph-input-label" // Use aria-labelledby if needed
               rows={8}
               className="font-mono text-xs leading-relaxed"
               placeholder={`[Node A]\n[Node B]\n[Node A] -> [Node B]`}
@@ -94,10 +101,9 @@ const Sidebar: React.FC = () => {
           />
           <Button
               variant="primary"
-              className="w-full"
-              onClick={handleLoadGraph}
+              className="w-full mt-2" // Added margin top
+              onClick={handleLoadGraph} // ** USE the handler **
               disabled={!stylesResolved || !graphInputText.trim()}
-              // icon={FileText} // Removed unused icon import earlier
           >
               {t('loadGraphButton')}
           </Button>
@@ -114,9 +120,9 @@ const Sidebar: React.FC = () => {
                       size="sm"
                       className="w-full justify-center"
                       disabled={!stylesResolved}
-                  > {/* Verified opening tag */}
+                  >
                       {layout.charAt(0).toUpperCase() + layout.slice(1)}
-                  </Button> // ** Verified closing tag **
+                  </Button>
               ))}
           </div>
       </Panel>
