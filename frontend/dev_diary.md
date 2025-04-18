@@ -61,4 +61,22 @@ Refactored the `calculateDegrees` function to ensure the `forEach` callback does
 **Notes:**
 Always ensure that callbacks passed to methods like `forEach` adhere to the expected return types to prevent type errors.
 
+---
+
+### 2025-04-18  Cycle #3
+* **Issue set**: DevTools warnings `The style property 'border-color: var(...)` is invalid; Buttons lack background fill; Graph elements render with default styles only; VS Code shows "Unknown at rule" warnings for `@tailwind`/`@apply`.
+* **Root causes**:
+  1. **Border Color Warnings**: Cytoscape's runtime `.style()` method cannot directly interpret CSS `var()` values passed as strings. Requires computed color values.
+  2. **Button Styling**: Missing explicit size classes (`.btn-sm`, `.btn-md`, `.btn-lg`) defined using `@apply` in `index.css`, preventing correct application by the `Button` component. Base variant styles might also be incorrectly applied/overridden.
+  3. **Graph Styling**: The `graphParser.ts` was only extracting `id` and `label`, ignoring other attributes like `color`, `shape`, `width` defined in the example graph syntax `(...)`. Cytoscape selectors like `node[color]` had no data to map.
+  4. **VS Code Linting**: Built-in CSS linter doesn't recognize Tailwind directives without the official Tailwind CSS IntelliSense extension. This doesn't affect the build process.
+* **Fixes implemented**:
+  1. **Border Color**: Modified `MetricsSidebar.tsx`'s overlay effect to use `getComputedStyle(document.documentElement).getPropertyValue('--color-...')` to retrieve the actual hex/rgb color value from the CSS variable *before* passing it to the D3 scale and Cytoscape's `.style()`.
+  2. **Button Styling**: Added explicit `.btn-sm`, `.btn-md`, `.btn-lg` definitions using `@apply` in `index.css`. Verified `Button.tsx` applies the correct size class prop.
+  3. **Graph Parser**: Rewrote `graphParser.ts` to parse generic `key=value` pairs within node `(...)` and edge `(...)` definitions, adding them to the element's `data` object.
+  4. **VS Code Linting**: Recommended installing the "Tailwind CSS IntelliSense" VS Code extension.
+* **Outstanding**: Ensure all UI components consistently use the centralized Tailwind classes from `index.css`.
+* **Sources consulted**: MDN `getComputedStyle` documentation; Cytoscape.js styling documentation regarding runtime style application.
+
+---
 _Add new entries at the top, newest first._

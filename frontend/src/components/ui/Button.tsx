@@ -18,7 +18,7 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
     // Map props to component class names defined in index.css
     const variantClass = `btn-${variant}`;
-    const sizeClass = `btn-${size}`; // Define btn-sm, btn-md, btn-lg in index.css if needed
+    const sizeClass = `btn-${size}`; // Apply the size class
 
     const iconSizeStyles: Record<ButtonSize, string> = {
         sm: 'w-3.5 h-3.5',
@@ -30,7 +30,7 @@ const Button: React.FC<ButtonProps> = ({
 
     return (
         <button
-            // Combine base 'btn' class with variant/size specific classes from index.css
+            // Combine base 'btn' class with variant AND size classes
             className={`btn ${variantClass} ${sizeClass} ${className}`}
             title={accessibleTitle}
             {...props}
@@ -41,13 +41,5 @@ const Button: React.FC<ButtonProps> = ({
         </button>
     );
 };
-// Add size classes to index.css if not already defined by Tailwind defaults used in @apply
-/*
-@layer components {
-  .btn-sm { @apply px-3 py-1.5 text-xs; }
-  .btn-md { @apply px-4 py-2 text-sm; }
-  .btn-lg { @apply px-6 py-3 text-base; }
-}
-*/
 
 export default Button;

@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 /* Define CSS variables for themes (Keep as is) */
-:root {
+:root { /* ... CSS variables ... */
   /* --- Dark Mode (Default) --- */
   --color-bg-primary-dark: #111111;
   --color-bg-secondary-dark: #1f1f1f;
@@ -44,7 +44,6 @@
   /* --- Default Theme Assignment --- */
   --color-bg-primary: var(--color-bg-primary-dark);
   --color-bg-secondary: var(--color-bg-secondary-dark);
-  /* ... rest of variable assignments ... */
    --color-bg-tertiary: var(--color-bg-tertiary-dark);
   --color-accent-primary: var(--color-accent-primary-dark);
   --color-accent-primary-hover: var(--color-accent-primary-hover-dark);
@@ -61,11 +60,10 @@
   --color-warning: var(--color-warning-dark);
 }
 
-/* Apply Light Mode variables when .light class is present (Keep as is) */
+/* Apply Light Mode variables (Keep as is) */
 html.light {
   --color-bg-primary: var(--color-bg-primary-light);
   --color-bg-secondary: var(--color-bg-secondary-light);
-  /* ... rest of light mode variable assignments ... */
   --color-bg-tertiary: var(--color-bg-tertiary-light);
   --color-accent-primary: var(--color-accent-primary-light);
   --color-accent-primary-hover: var(--color-accent-primary-hover-light);
@@ -87,23 +85,24 @@ body {
   @apply bg-bg-primary text-text-base antialiased font-sans overflow-hidden;
 }
 
-/* Define reusable component classes using @apply (Keep others as is) */
+/* Define reusable component classes using @apply */
 @layer components {
   /* Panels (Keep as is) */
   .panel { @apply bg-bg-secondary rounded-lg border border-border p-4 shadow-md; }
   .panel-title { @apply text-base font-semibold text-accent-primary mb-3 flex items-center gap-2; }
 
-  /* Buttons (Keep as is) */
+  /* --- Buttons --- */
   .btn { @apply inline-flex items-center justify-center font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg-primary transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed gap-2; }
   .btn-primary { @apply btn bg-accent-primary text-text-inverted hover:bg-accent-primary-hover focus:ring-accent-primary; }
   .btn-secondary { @apply btn bg-bg-tertiary text-text-base hover:bg-border focus:ring-accent-primary; }
   .btn-warning { @apply btn bg-accent-secondary text-text-inverted hover:bg-accent-secondary-hover focus:ring-accent-secondary; }
   .btn-danger { @apply btn bg-danger text-white hover:bg-red-700 focus:ring-danger; }
   .btn-ghost { @apply btn bg-transparent text-text-muted hover:bg-bg-tertiary focus:ring-accent-primary; }
-  /* Add size classes if needed */
-  /* .btn-sm { @apply px-3 py-1.5 text-xs; } */
-  /* .btn-md { @apply px-4 py-2 text-sm; } */
-  /* .btn-lg { @apply px-6 py-3 text-base; } */
+  /* --- Explicit Button Sizes --- */
+  /* Make sure these @apply rules use valid Tailwind classes */
+  .btn-sm { @apply px-3 py-1.5 text-xs; }
+  .btn-md { @apply px-4 py-2 text-sm; }
+  .btn-lg { @apply px-6 py-3 text-base; }
 
   /* Inputs (Keep as is) */
   .input-base { @apply block w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-text-base placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent-primary focus:border-accent-primary sm:text-sm disabled:opacity-60; }
@@ -114,12 +113,8 @@ body {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* --- CORRECTED Sidebar Overlay --- */
-  /* Define the base structure and positioning using @apply */
-  /* REMOVE the background color and opacity from here */
-  .sidebar-overlay {
-    @apply fixed right-0 top-0 h-full w-80 backdrop-blur-lg border-l border-border rounded-l-lg shadow-xl transform transition-transform z-30;
-  }
+  /* Sidebar Overlay (Keep as is) */
+  .sidebar-overlay { @apply fixed right-0 top-0 h-full w-80 backdrop-blur-lg border-l border-border rounded-l-lg shadow-xl transform transition-transform z-30; }
 }
 
 /* Base layer (Keep as is) */
