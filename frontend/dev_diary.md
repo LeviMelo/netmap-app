@@ -79,4 +79,33 @@ Always ensure that callbacks passed to methods like `forEach` adhere to the expe
 * **Sources consulted**: MDN `getComputedStyle` documentation; Cytoscape.js styling documentation regarding runtime style application.
 
 ---
-_Add new entries at the top, newest first._
+
+### 2025-04-18 Cycle #4
+* **Issue set**: TS2694 `Namespace 'cytoscape.Css' has no exported member 'Rule'` in `store.tsx`.
+* **Root causes**: Incorrectly reverted to using `cytoscape.Css.Rule[]` type for the style state, which is invalid. The previously working type `cytoscape.Stylesheet[]` (representing an array of style rules) was the correct one.
+* **Fixes implemented**: Reverted the `style` state type definition in `store.tsx` back to `cytoscape.Stylesheet[]`. Removed unused `Css` import.
+* **Outstanding**: None related to this specific type issue.
+* **Sources consulted**: `@types/cytoscape` definitions; previous successful compilation state.
+
+---
+
+### 2025-04-18 Cycle #5
+* **Issue set**: TS2724 `'"cytoscape"' has no exported member named 'Stylesheet'` persists in `store.tsx` after attempting to use `cytoscape.Stylesheet[]`.
+* **Root causes**: The correct type alias for the stylesheet array in `@types/cytoscape` seems ambiguous or unavailable as a direct top-level import (`Stylesheet`). Reverted to using the fundamental type for an array of style rule objects.
+* **Fixes implemented**: Changed the `style` state type definition in `store.tsx` to `cytoscape.Css.Properties[]`. Kept the `Css` namespace import.
+* **Outstanding**: Monitor for any downstream type issues related to this change, although it should be compatible.
+* **Sources consulted**: `@types/cytoscape` definitions focusing on `Css.Properties`.
+
+---
+
+### 2025‑04‑19  Cycle #6
+* **Issue**: TS2694 “Namespace 'cytoscape.Css' has no exported member 'Properties'” in `store.tsx`.
+* **Cause**: Attempted to use the non‑existent `cytoscape.Css.Properties` type for style rules.
+* **Fix**: 
+  - Removed all references to `cytoscape.Css.Properties`.  
+  - Defined a local `StyleRule` interface (`selector: string; style: CyStyle`) using `Partial<cytoscape.StylesheetStyle>`.  
+  - Typed `GraphState.style` as `StyleRule[]` exclusively.
+* **Outcome**: Clean compilation with correct Cytoscape styles, no more TS2694.
+
+
+_Add new entries at the bottom, newest first._

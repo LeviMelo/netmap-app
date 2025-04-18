@@ -1,18 +1,16 @@
+// src/store.tsx
 import { create } from 'zustand';
 import cytoscape, { ElementDefinition } from 'cytoscape';
 
-/* ----- tiny helper aliases to keep Cytoscape typings happy ------- */
+/** A single Cytoscape style rule: selector + a partial StylesheetStyle object */
 type CyStyle = Partial<cytoscape.StylesheetStyle>;
-type NodeShape = cytoscape.Css.NodeShape | string;
 
-/* ----------------------------- data ------------------------------ */
 export interface NodeData {
   id: string;
   label: string;
   color?: string;
-  shape?: NodeShape;
+  shape?: string;
 }
-
 export interface EdgeData {
   id: string;
   source: string;
@@ -27,7 +25,6 @@ interface StyleRule {
   style: CyStyle;
 }
 
-/* --------------------------- store ------------------------------- */
 interface GraphState {
   nodes: ElementDefinition[];
   edges: ElementDefinition[];
@@ -50,11 +47,8 @@ interface GraphState {
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
-  /* --------- graph data ---------------------------------------- */
   nodes: [],
   edges: [],
-
-  /* --------- default stylesheet -------------------------------- */
   style: [
     {
       selector: 'node',
@@ -76,8 +70,14 @@ export const useGraphStore = create<GraphState>((set) => ({
         'border-color': 'transparent',
       },
     },
-    { selector: 'node[color]', style: { 'background-color': 'data(color)' } },
-    { selector: 'node[shape]', style: { shape: 'data(shape)' as any } },
+    {
+      selector: 'node[color]',
+      style: { 'background-color': 'data(color)' },
+    },
+    {
+      selector: 'node[shape]',
+      style: { shape: 'data(shape)' as any },
+    },
     {
       selector: 'node:selected',
       style: {
@@ -86,7 +86,6 @@ export const useGraphStore = create<GraphState>((set) => ({
         'overlay-opacity': 0.3,
       },
     },
-    /* ------------------------- edges --------------------------- */
     {
       selector: 'edge',
       style: {
@@ -119,15 +118,15 @@ export const useGraphStore = create<GraphState>((set) => ({
         'target-arrow-color': 'data(color)',
       },
     },
-    { selector: 'edge[width]', style: { width: 'data(width)' as any } },
+    {
+      selector: 'edge[width]',
+      style: { width: 'data(width)' as any },
+    },
   ],
-
-  /* --------- misc --------------------------------------------- */
   selectedElementId: null,
   stylesResolved: true,
   layoutName: 'cose',
 
-  /* --------- actions ------------------------------------------ */
   setNodes: (nodes) => set({ nodes, selectedElementId: null }),
   setEdges: (edges) => set({ edges }),
   addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
