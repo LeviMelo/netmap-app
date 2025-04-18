@@ -1,5 +1,4 @@
-// src/components/Sidebar.tsx
-import React, { useState, useEffect, ChangeEvent, useMemo } from 'react';
+import React, { useState, ChangeEvent, useMemo } from 'react';
 import { useGraphStore } from '../store';
 import { parseGraphSyntax } from '../utils/graphParser';
 import { diabetesExampleSyntax } from '../constants/exampleGraph';
@@ -10,235 +9,165 @@ import TextAreaInput from './ui/TextAreaInput';
 import TextInput from './ui/TextInput';
 import SelectInput, { SelectOption } from './ui/SelectInput';
 import EditPanel from './EditPanel';
-import {
-  UploadCloud,
-  Languages,
-  Sun,
-  Moon,
-  Trash2,
-  PlusCircle,
-  Link
-} from 'lucide-react';
 import LayoutControls from './LayoutControls';
+import StyleControls from './StyleControls';
+import { UploadCloud, PlusCircle, Link, Trash2, Sun, Moon } from 'lucide-react';
 
-// Supported layouts
-let nodeCtr = 0, edgeCtr = 0;
-const genNodeId = () => `new_n_${Date.now()}_${nodeCtr++}`;
-const genEdgeId = () => `new_e_${Date.now()}_${edgeCtr++}`;
+/* id generators ---------------------------------------------------- */
+const genNodeId = (() => { let c = 0; return () => `u_n_${Date.now()}_${c++}`; })();
+const genEdgeId = (() => { let c = 0; return () => `u_e_${Date.now()}_${c++}`; })();
 
 const Sidebar: React.FC = () => {
-  // i18n
+  /* localisation / theme ------------------------------------------ */
   const { t, locale, setLocale } = useTranslations();
-  // theme toggle
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  useEffect(() => {
-    document.documentElement.classList.toggle('light', theme === 'light');
-  }, [theme]);
+  const isLight = document.documentElement.classList.contains('light');
+  const toggleTheme = () => document.documentElement.classList.toggle('light');
 
-  // text vs. JSON input mode
-  const [mode, setMode] = useState<'text' | 'json'>('text');
-  const [input, setInput] = useState<string>('');
+  /* graph input mode (DSL vs JSON) -------------------------------- */
+  const [syntaxMode, setSyntaxMode] = useState<'text' | 'json'>('text');
+  const [input, setInput] = useState('');
 
-  // edge‐creation form state
-  const [srcRef, setSrcRef] = useState('');
-  const [tgtRef, setTgtRef] = useState('');
-  const [edgeLabel, setEdgeLabel] = useState('');
+  /* graph mutations ------------------------------------------------ */
+  const nodes       = useGraphStore((s) => s.nodes);
+  const setNodes    = useGraphStore((s) => s.setNodes);
+  const setEdges    = useGraphStore((s) => s.setEdges);
+  const selectedId  = useGraphStore((s) => s.selectedElementId);
+  const remove      = useGraphStore((s) => s.removeElement);
+  const addNode     = useGraphStore((s) => s.addNode);
+  const addEdge     = useGraphStore((s) => s.addEdge);
 
-  // Graph store slices
-  const nodes = useGraphStore(s => s.nodes);
-  const setNodes = useGraphStore(s => s.setNodes);
-  const setEdges = useGraphStore(s => s.setEdges);
-  const stylesResolved = useGraphStore(s => s.stylesResolved);
-  const selectedId = useGraphStore(s => s.selectedElementId);
-  const removeElement = useGraphStore(s => s.removeElement);
-  const addNode = useGraphStore(s => s.addNode);
-  const addEdge = useGraphStore(s => s.addEdge);
-
-  // Parse & load based on mode
+  /* load button ---------------------------------------------------- */
   const handleLoad = () => {
-    if (mode === 'text') {
-      const parsed = parseGraphSyntax(input, t);
-      if (parsed) {
-        setNodes(parsed.nodes);
-        setEdges(parsed.edges);
-      } else {
-        alert(t('parseErrorAlert'));
-      }
-    } else {
+    if (!input.trim()) return;
+    if (syntaxMode === 'json') {
       try {
         const obj = JSON.parse(input);
         if (obj.nodes && obj.edges) {
           setNodes(obj.nodes);
           setEdges(obj.edges);
-        } else throw new Error();
-      } catch {
-        alert('Invalid JSON');
-      }
+        } else throw 0;
+      } catch { alert('Invalid JSON'); }
+      return;
     }
+    /* text DSL ---------------------------------------------------- */
+    const parsed = parseGraphSyntax(input, t);
+    if (parsed) { setNodes(parsed.nodes); setEdges(parsed.edges); }
+    else alert(t('parseErrorAlert'));
   };
 
-  // Options for source/target dropdowns
-  const nodeOptions: SelectOption[] = useMemo(
+  /* edge‑builder dropdowns ---------------------------------------- */
+  const options: SelectOption[] = useMemo(
     () =>
       nodes
-        .filter((n): n is { data: { id: string; label?: string } } => typeof n.data?.id === 'string')
-        .map(n => ({
+        .filter((n): n is { data: { id: string; label?: string } } => !!n.data?.id)
+        .map((n) => ({
           value: n.data.id,
-          label: `${n.data.label ?? 'N/A'} (${n.data.id.slice(0,4)}…)`
+          label: `${n.data.label ?? 'N/A'} (${n.data.id.slice(0, 4)})`,
         })),
     [nodes]
   );
+  const [src, setSrc] = useState('');  const [tgt, setTgt] = useState('');  const [lbl, setLbl] = useState('');
 
+  /* ---------------------------------------------------------------- */
   return (
     <div className="flex flex-col h-full p-4 space-y-5 overflow-y-auto no-scrollbar">
-      {/* Logo & Title */}
-      <div className="flex items-center gap-2 mb-4">
-        <img src="/assets/netmap_logo.svg" alt="Netmap" className="w-6 h-6" />
-        <h2 className="text-xl font-bold">{t('appTitle')}</h2>
-      </div>
-
-      {/* Locale & Theme */}
-      <div className="flex justify-end gap-2 mb-4">
+      {/* quick switches -------------------------------------------- */}
+      <div className="flex justify-end gap-2 mb-3">
         <Button
-          variant="ghost"
           size="sm"
-          icon={Languages}
-          title={t(locale === 'en-US' ? 'switchToPortuguese' : 'switchToEnglish')}
+          variant="ghost"
           onClick={() => setLocale(locale === 'en-US' ? 'pt-BR' : 'en-US')}
-        >
-          {locale === 'en-US' ? 'PT' : 'EN'}
-        </Button>
+        >{locale === 'en-US' ? 'PT' : 'EN'}</Button>
+
         <Button
-          variant="ghost"
           size="sm"
-          icon={theme === 'light' ? Moon : Sun}
-          title={t(theme === 'light' ? 'switchToDarkMode' : 'switchToLightMode')}
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          variant="ghost"
+          icon={isLight ? Moon : Sun}
+          onClick={toggleTheme}
+          title={isLight ? t('switchToDarkMode') : t('switchToLightMode')}
         />
+
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setSyntaxMode(syntaxMode === 'text' ? 'json' : 'text')}
+        >{syntaxMode.toUpperCase()}</Button>
       </div>
 
-      {/* Text vs JSON Mode Toggle */}
-      <div className="flex space-x-2">
-        <button
-          className={`px-3 py-1 rounded ${mode==='text'?'bg-accent-primary text-white':'bg-bg-tertiary'}`}
-          onClick={()=>setMode('text')}
-        >Text</button>
-        <button
-          className={`px-3 py-1 rounded ${mode==='json'?'bg-accent-primary text-white':'bg-bg-tertiary'}`}
-          onClick={()=>setMode('json')}
-        >JSON</button>
-      </div>
-
-      {/* Load Graph Panel */}
-      <Panel title={mode==='text'?t('loadGraphTitle'):'Import JSON'} icon={UploadCloud}>
-        {mode==='text' ? (
-          <div className="flex justify-between items-center mb-1">
-            <label htmlFor="graph-input" className="label-text">{t('loadGraphLabel')}</label>
-            <button
-              onClick={()=>setInput(diabetesExampleSyntax)}
-              disabled={!stylesResolved}
-              className="text-accent-primary hover:underline text-xs font-medium"
-            >{t('pasteExampleLink')}</button>
-          </div>
-        ) : null}
+      {/* loader panel --------------------------------------------- */}
+      <Panel title={syntaxMode === 'text' ? t('loadGraphTitle') : 'Import JSON'} icon={UploadCloud}>
+        {syntaxMode === 'text' && (
+          <button
+            onClick={() => setInput(diabetesExampleSyntax)}
+            className="text-accent-primary text-xs font-medium mb-1"
+          >
+            {t('pasteExampleLink')}
+          </button>
+        )}
         <TextAreaInput
           id="graph-input"
           rows={8}
           className="font-mono text-xs"
-          placeholder={mode==='text'?'[A]->[B]':'{"nodes":[], "edges":[]}'} 
           value={input}
-          onChange={(e:ChangeEvent<HTMLTextAreaElement>)=>setInput(e.target.value)}
-          disabled={!stylesResolved}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
         />
-        <Button
-          variant="primary"
-          className="w-full mt-2"
-          onClick={handleLoad}
-          disabled={!stylesResolved||!input.trim()}
-        >
-          {mode==='text'?t('loadGraphButton'):'Load JSON'}
+        <Button variant="primary" className="w-full mt-2" onClick={handleLoad} disabled={!input.trim()}>
+          {syntaxMode === 'text' ? t('loadGraphButton') : 'Load JSON'}
         </Button>
       </Panel>
 
-      {/* Layout Controls */}
+      {/* layout & style panels ------------------------------------ */}
       <LayoutControls />
+      <StyleControls />
 
-      {/* Editing & Tools */}
+      {/* editing panel ------------------------------------------- */}
       <Panel title={t('editingTitle')} icon={PlusCircle}>
+        {/* quick node / delete */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           <Button
-            onClick={()=>{
-              const label=prompt(t('addNodePromptLabel'), t('addNodePromptDefault'));
-              if(label) addNode({data:{id:genNodeId(),label}});
-            }}
             variant="secondary"
             size="sm"
-            className="w-full"
             icon={PlusCircle}
-            disabled={!stylesResolved}
+            className="w-full"
+            onClick={() => {
+              const name = prompt(t('addNodePromptLabel'), t('addNodePromptDefault'));
+              if (name) addNode({ data: { id: genNodeId(), label: name } });
+            }}
           >{t('addNodeTitle')}</Button>
+
           <Button
-            onClick={()=>selectedId && removeElement(selectedId)}
             variant="danger"
             size="sm"
-            className="w-full"
             icon={Trash2}
-            disabled={!selectedId||!stylesResolved}
+            className="w-full"
+            disabled={!selectedId}
+            onClick={() => selectedId && remove(selectedId)}
           >{t('deleteSelectedTitle')}</Button>
         </div>
 
-        <div className="border-t border-border pt-4 space-y-3 mb-4">
-          <h4 className="text-sm font-medium text-text-muted flex items-center gap-2">
-            <Link size={14}/>{t('addEdgeTitle')}
-          </h4>
-          <SelectInput
-            id="src"
-            label={t('sourceNodeLabel')}
-            placeholderOption={{value:'',label:t('selectSourcePlaceholder')}}
-            options={nodeOptions}
-            value={srcRef}
-            onChange={(e)=>setSrcRef(e.target.value)}
-            disabled={!stylesResolved || !nodeOptions.length}
-          />
-          <SelectInput
-            id="tgt"
-            label={t('targetNodeLabel')}
-            placeholderOption={{value:'',label:t('selectTargetPlaceholder')}}
-            options={nodeOptions}
-            value={tgtRef}
-            onChange={(e)=>setTgtRef(e.target.value)}
-            disabled={!stylesResolved || !nodeOptions.length}
-          />
-          <TextInput
-            id="edge-label"
-            label={t('edgeLabelLabel')}
-            value={edgeLabel}
-            onChange={e=>setEdgeLabel(e.target.value)}
-            disabled={!stylesResolved}
-          />
-          <Button
-            onClick={()=>{
-              if(!srcRef||!tgtRef){alert(t('addEdgeSelectNodesError'));return;}
-              addEdge({data:{id:genEdgeId(),source:srcRef,target:tgtRef,label:edgeLabel||undefined}});
-              setSrcRef('');setTgtRef('');setEdgeLabel('');
-            }}
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            icon={Link}
-            disabled={!srcRef||!tgtRef||!stylesResolved}
-          >{t('addEdgeTitle')}</Button>
-        </div>
+        {/* edge creator */}
+        <h4 className="text-sm font-medium text-text-muted flex items-center gap-2 mb-1">
+          <Link size={14} /> {t('addEdgeTitle')}
+        </h4>
+        <SelectInput id="src" label={t('sourceNodeLabel')} options={options} value={src} onChange={(e)=>setSrc(e.target.value)} />
+        <SelectInput id="tgt" label={t('targetNodeLabel')} options={options} value={tgt} onChange={(e)=>setTgt(e.target.value)} />
+        <TextInput   id="lbl" label={t('edgeLabelLabel')} value={lbl} onChange={(e)=>setLbl(e.target.value)} />
 
-        <EditPanel/>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={Link}
+          className="w-full mt-2"
+          onClick={() => {
+            if (!src || !tgt) { alert(t('addEdgeSelectNodesError')); return; }
+            addEdge({ data: { id: genEdgeId(), source: src, target: tgt, label: lbl || undefined } });
+            setSrc(''); setTgt(''); setLbl('');
+          }}
+        >{t('addEdgeTitle')}</Button>
+
+        {/* element‑specific editor -------------------------------- */}
+        <EditPanel />
       </Panel>
-
-      <div className="flex-grow"/>
-
-      {/* Authorship footer */}
-      <div className="mt-4 pt-4 text-center border-t border-border">
-        <p className="text-xs text-text-muted opacity-75">{t('authorship')}</p>
-      </div>
     </div>
   );
 };
