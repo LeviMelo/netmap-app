@@ -12,7 +12,6 @@ import SelectInput, { SelectOption } from './ui/SelectInput';
 import EditPanel from './EditPanel';
 import {
   UploadCloud,
-  LayoutGrid,
   Languages,
   Sun,
   Moon,
@@ -20,9 +19,9 @@ import {
   PlusCircle,
   Link
 } from 'lucide-react';
+import LayoutControls from './LayoutControls';
 
 // Supported layouts
-const availableLayouts = ['grid', 'cose', 'circle', 'breadthfirst', 'dagre'];
 let nodeCtr = 0, edgeCtr = 0;
 const genNodeId = () => `new_n_${Date.now()}_${nodeCtr++}`;
 const genEdgeId = () => `new_e_${Date.now()}_${edgeCtr++}`;
@@ -50,8 +49,6 @@ const Sidebar: React.FC = () => {
   const setNodes = useGraphStore(s => s.setNodes);
   const setEdges = useGraphStore(s => s.setEdges);
   const stylesResolved = useGraphStore(s => s.stylesResolved);
-  const layoutName = useGraphStore(s => s.layoutName);
-  const setLayoutName = useGraphStore(s => s.setLayoutName);
   const selectedId = useGraphStore(s => s.selectedElementId);
   const removeElement = useGraphStore(s => s.removeElement);
   const addNode = useGraphStore(s => s.addNode);
@@ -164,20 +161,7 @@ const Sidebar: React.FC = () => {
       </Panel>
 
       {/* Layout Controls */}
-      <Panel title={t('layoutTitle')} icon={LayoutGrid}>
-        <div className="grid grid-cols-3 gap-2">
-          {availableLayouts.map(l=>(
-            <Button
-              key={l}
-              onClick={()=>setLayoutName(l)}
-              variant={layoutName===l?'primary':'secondary'}
-              size="sm"
-              className="w-full"
-              disabled={!stylesResolved}
-            >{l.charAt(0).toUpperCase()+l.slice(1)}</Button>
-          ))}
-        </div>
-      </Panel>
+      <LayoutControls />
 
       {/* Editing & Tools */}
       <Panel title={t('editingTitle')} icon={PlusCircle}>
