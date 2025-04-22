@@ -14,7 +14,7 @@ import { Palette } from 'lucide-react'; // Icon
 
 // Temporary placeholder for translation function
 // Replace with actual import: import { useTranslations } from '../hooks/useTranslations';
-const t = (key: string) => key.split('.').pop() || key; // Simple mock
+// const t = (key: string) => key.split('.').pop() || key; // Simple mock
 
 const StyleControls: React.FC = () => {
   // Select state and actions from the settings store

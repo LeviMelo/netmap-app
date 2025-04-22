@@ -9,12 +9,12 @@
  */
 import React, { useRef, useMemo, useCallback, useEffect, memo } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
-import cytoscape, { Core, ElementDefinition, LayoutOptions, NodeSingular } from 'cytoscape';
+import cytoscape, { Core, LayoutOptions, NodeSingular } from 'cytoscape';
 
 // Import stores
 import { useGraphDataStore } from '../stores/graphDataStore';
 import { useGraphSettingsStore } from '../stores/graphSettingsStore';
-import { useGraphInteractionStore, InteractionMode } from '../stores/graphInteractionStore';
+import { useGraphInteractionStore } from '../stores/graphInteractionStore';
 
 // Import style builder and CSS var getter
 import { buildCytoscapeStyles, getCssVar } from '../utils/cytoscapeStyles';

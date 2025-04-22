@@ -27,7 +27,7 @@ const TopBar: React.FC<Props> = ({ onMetricsToggle, onShareToggle }) => {
   // Get interaction mode state and actions
   const mode = useGraphInteractionStore((s) => s.mode);
   const toggleManualModeAction = useGraphInteractionStore((s) => s.toggleManualMode);
-  const setMode = useGraphInteractionStore((s) => s.setMode); // For direct mode setting if needed
+  // const setMode = useGraphInteractionStore((s) => s.setMode); // For direct mode setting if needed
 
   // Local state for theme icon, synced with document class
   const [isDarkMode, setIsDarkMode] = useState(!document.documentElement.classList.contains('light'));

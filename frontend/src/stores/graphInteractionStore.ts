@@ -51,17 +51,17 @@ export const useGraphInteractionStore = create<GraphInteractionState>((set, get)
 // Optional: Subscribe to graphDataStore to clear selection if the selected element is deleted
 // This creates a link between stores but can be useful for consistency.
 useGraphDataStore.subscribe(
-  (state, prevState) => {
-    const selectedId = useGraphInteractionStore.getState().selectedElementId;
-    if (!selectedId) return; // No selection, nothing to do
-
-    const elementStillExists =
-      state.nodes.some(n => n.data?.id === selectedId) ||
-      state.edges.some(e => e.data?.id === selectedId);
-
-    if (!elementStillExists) {
-        console.log(`Selected element ${selectedId} removed, clearing selection.`);
-        useGraphInteractionStore.getState().setSelectedElementId(null);
+    (state, _prevState) => { // Mark prevState as unused with an underscore
+      const selectedId = useGraphInteractionStore.getState().selectedElementId;
+      if (!selectedId) return; // No selection, nothing to do
+  
+      const elementStillExists =
+        state.nodes.some(n => n.data?.id === selectedId) ||
+        state.edges.some(e => e.data?.id === selectedId);
+  
+      if (!elementStillExists) {
+          console.log(`Selected element ${selectedId} removed, clearing selection.`);
+          useGraphInteractionStore.getState().setSelectedElementId(null);
+      }
     }
-  }
 );

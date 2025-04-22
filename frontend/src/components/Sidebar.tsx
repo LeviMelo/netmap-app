@@ -5,7 +5,6 @@
  * It interacts with various Zustand stores to fetch data/settings and dispatch actions.
  */
 import React, { useState, ChangeEvent, useMemo, useEffect } from 'react';
-import { ElementDefinition } from 'cytoscape';
 
 // Import stores
 import { useGraphDataStore } from '../stores/graphDataStore';
@@ -26,7 +25,7 @@ import SelectInput, { SelectOption } from './ui/SelectInput';
 import EditPanel from './EditPanel'; // Will be updated later
 import LayoutControls from './LayoutControls'; // Will be updated later
 import StyleControls from './StyleControls'; // Will beupdated later
-import { UploadCloud, PlusCircle, Link, Trash2, Sun, Moon, Settings, Edit } from 'lucide-react'; // Added icons
+import { UploadCloud, PlusCircle, Link, Trash2, Sun, Moon, Edit } from 'lucide-react'; // Added icons
 
 // ID generators (keep local or move to utils)
 const genNodeId = (() => { let c = 0; return () => `u_n_${Date.now()}_${c++}`; })();

@@ -13,7 +13,7 @@
  * - Providing actions to update the `data` payload of existing nodes/edges.
  */
 import { create } from 'zustand';
-import cytoscape, { ElementDefinition } from 'cytoscape';
+import { ElementDefinition } from 'cytoscape';
 
 // Re-define necessary data types or import them if centralized
 export interface NodeData {
@@ -74,7 +74,7 @@ export const useGraphDataStore = create<GraphDataState>((set, get) => ({
   nodes: [],
   edges: [],
 
-  loadGraph: (nodes, edges) => set({ nodes: nodes || [], edges: edges || [], selectedElementId: null }), // Reset selection on load
+  loadGraph: (nodes, edges) => set({ nodes: nodes || [], edges: edges || [] }), // Reset selection on load
 
   addNode: (node) => {
     // Ensure node has a data object and id

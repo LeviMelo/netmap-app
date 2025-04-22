@@ -4,7 +4,23 @@
  * of the currently selected graph element (node or edge). It fetches the
  * selected element's ID from the interaction store and its data from the
  * data store. It dispatches update actions to the data store.
+ * 
+ * ---
+ * ✅ FIX LOG (TypeScript Integration & Runtime Safety)
+ * 
+ * - TypeScript Warning (TS18047): `'selectedId' is possibly 'null'`
+ *   → Problem: selectedId may be `null`, but `.slice(0, 6)` assumes it's a `string`
+ *   → Fix: Replaced `selectedId.slice(0, 6)` with `selectedElement.data.id.slice(0, 6)`
+ *     → `selectedElement` is guaranteed non-null by runtime check
+ *     → `.data.id` is a required string (safe for slicing)
+ * 
+ * - Method Explanation:
+ *   → `.slice(start, end?)` is a native JS method to extract substrings or subarrays
+ *   → Common use case here: abbreviate IDs for compact UI display (e.g., "node-abc...")
+ *
+ * ---
  */
+
 import React, { useState, useEffect, useMemo } from 'react';
 
 // Import stores
@@ -120,7 +136,7 @@ const EditPanel: React.FC = () => {
            <SlidersHorizontal size={14}/>
            {t('editPropertiesTitle')}
            <span className="font-mono text-xs bg-bg-tertiary px-1.5 py-0.5 rounded">
-                ({selectedElement.type}: {selectedId.slice(0, 6)}...)
+                ({selectedElement.type}: {selectedElement.data.id.slice(0, 6)}...)
            </span>
        </h4>
       {/* Label Input (Common to Nodes and Edges) */}

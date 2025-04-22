@@ -6,7 +6,7 @@
  * for image export.
  */
 import React, { useState, MutableRefObject } from 'react';
-import { Core, ElementDefinition } from 'cytoscape';
+import { ElementDefinition, Core } from 'cytoscape'; // Only import ElementDefinition
 
 // Import stores
 import { useGraphDataStore } from '../stores/graphDataStore'; // To get nodes/edges for text/json export
@@ -15,6 +15,7 @@ import { useGraphDataStore } from '../stores/graphDataStore'; // To get nodes/ed
 import { useTranslations } from '../hooks/useTranslations';
 import Button from './ui/Button';
 import { X } from 'lucide-react'; // Icon
+import { getCssVar } from '../utils/cytoscapeStyles'; // Added getCssVar import
 
 // Props interface
 interface Props {

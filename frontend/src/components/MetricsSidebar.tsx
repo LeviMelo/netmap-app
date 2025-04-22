@@ -5,20 +5,19 @@
  * It fetches graph data to trigger updates and uses a direct Cytoscape instance reference
  * (`cyRef`) for complex calculations or visualizations like the halo overlay.
  */
-import React, { useMemo, useEffect, useState, useCallback, MutableRefObject } from 'react';
+import React, { useMemo, useEffect, useState, useCallback, MutableRefObject, useRef } from 'react'; // Added useRef
 import { Core, NodeSingular } from 'cytoscape';
 import { rollup, max as d3Max } from 'd3-array';
 import { scaleBand, scaleLinear, ScaleBand, ScaleLinear } from 'd3-scale';
 
 // Import stores
 import { useGraphDataStore } from '../stores/graphDataStore';
-// Interaction store might be needed if overlays depend on selection
-// import { useGraphInteractionStore } from '../stores/graphInteractionStore';
 
 // Import hooks and utils
 import { useTranslations } from '../hooks/useTranslations';
-import { getCssVar } from '../utils/cytoscapeStyles'; // Use the shared CSS var getter
-import { X } from 'lucide-react'; // Icon
+import { getCssVar } from '../utils/cytoscapeStyles';
+import Button from './ui/Button'; // Added Button import
+import { X } from 'lucide-react';
 
 // Interface for degree calculation result
 interface DegreeBucket {
@@ -249,44 +248,55 @@ const MetricsSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
           <h4 className="label-text mb-2">{t('degreeDistribution')}</h4>
           {histogramData.length > 0 ? (
             <svg className="w-full h-32" aria-label={t('degreeDistribution')} role="img">
-              <g transform="translate(24, 4)"> {/* Margins for labels */}
-                {(() => {
-                  // Recalculate scales within the render - could be memoized if complex
-                  const svgWidth = 256 - 24 - 4; // Adjust for parent width and margins
-                  const svgHeight = 120 - 4 - 16; // Adjust for parent height and margins
-                  const xDomain = histogramData.map((b) => b.deg);
-                  const yDomain: [number, number] = [0, d3Max(histogramData, (b) => b.cnt) ?? 1];
+            <g transform="translate(24, 4)"> {/* Margins for labels */}
+              {(() => {
+                // Define constants and scales *before* using them in JSX
+                const svgWidth = 256 - 24 - 4; // Adjust for parent width and margins
+                const svgHeight = 120 - 4 - 16; // Adjust for parent height and margins
+                const xDomain = histogramData.map((b) => b.deg);
+                // Define yDomain *before* using it below
+                const yDomain: [number, number] = [0, d3Max(histogramData, (b) => b.cnt) ?? 1];
 
-                  // Ensure correct types for scales
-                  const xScale: ScaleBand<number> = scaleBand<number>()
-                      .domain(xDomain)
-                      .range([0, svgWidth])
-                      .padding(0.2);
-                  const yScale: ScaleLinear<number, number> = scaleLinear()
-                      .domain(yDomain)
-                      .range([svgHeight, 0]); // Y range is inverted for SVG coords
+                // Ensure correct types for scales
+                const xScale: ScaleBand<number> = scaleBand<number>()
+                    .domain(xDomain)
+                    .range([0, svgWidth])
+                    .padding(0.2);
+                const yScale: ScaleLinear<number, number> = scaleLinear()
+                    .domain(yDomain)
+                    .range([svgHeight, 0]); // Y range is inverted for SVG coords
 
-                  const barColor = getCssVar('--color-accent-primary'); // Use theme color
+                const barColor = getCssVar('--color-accent-primary'); // Use theme color
 
-                  return histogramData.map((b) => (
-                    <rect
-                      key={b.deg}
-                      x={xScale(b.deg) ?? 0} // Use nullish coalescing for safety
-                      y={yScale(b.cnt)}
-                      width={xScale.bandwidth()}
-                      height={svgHeight - yScale(b.cnt)}
-                      fill={barColor}
-                      rx="1" // Rounded corners
-                    >
-                      <title>{`Degree ${b.deg}: ${b.cnt} nodes`}</title> {/* Tooltip */}
-                    </rect>
-                  ));
-                })()}
-                 {/* Basic Y-axis label (Max Count) - Consider adding more axis details */}
-                 <text x={-4} y={0} dy="0.3em" textAnchor="end" fontSize="10" fill="currentColor">{yDomain[1]}</text>
-                 <text x={-4} y={svgHeight} dy="-0.3em" textAnchor="end" fontSize="10" fill="currentColor">0</text>
-              </g>
-            </svg>
+                // Now render the rects using the defined scales
+                const bars = histogramData.map((b) => (
+                  <rect
+                    key={b.deg}
+                    x={xScale(b.deg) ?? 0} // Use nullish coalescing for safety
+                    y={yScale(b.cnt)}
+                    width={xScale.bandwidth()}
+                    height={svgHeight - yScale(b.cnt)} // Use svgHeight here
+                    fill={barColor}
+                    rx="1" // Rounded corners
+                  >
+                    <title>{`Degree ${b.deg}: ${b.cnt} nodes`}</title> {/* Tooltip */}
+                  </rect>
+                ));
+
+                // Now render the axis labels using the defined domains/heights
+                return (
+                  <>
+                    {bars}
+                    {/* Basic Y-axis label (Max Count) - uses yDomain */}
+                    <text x={-4} y={0} dy="0.3em" textAnchor="end" fontSize="10" fill="currentColor">{yDomain[1]}</text>
+                    {/* Basic Y-axis label (Min Count - 0) - uses svgHeight */}
+                    <text x={-4} y={svgHeight} dy="-0.3em" textAnchor="end" fontSize="10" fill="currentColor">0</text>
+                  </>
+                );
+
+              })()}
+            </g>
+          </svg>
           ) : (
             <p className="text-text-muted text-sm">{nodeCount > 0 ? 'Calculating…' : 'No data'}</p>
           )}

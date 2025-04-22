@@ -1,16 +1,58 @@
 // src/utils/cytoscapeStyles.ts
-/**
+/** DONT DELETE OR REMOVE THIS COMMENT BLOCK, SPECIALLY IN REAGRDS TO THE TYPE SYSTEM NOTES
  * Utility functions related to generating Cytoscape.js stylesheets.
  * This centralizes the logic for translating abstract style parameters
  * (from graphSettingsStore) and application data into the specific style
  * object format required by Cytoscape.
+ * 
+ * ---
+ * ✅ TYPE SYSTEM NOTES (Zustand, Cytoscape, and TS)
+ * 
+ * ✅ Stylesheet Type (Critical Fix):
+ *  - Cytoscape.js expects style rules with shape:
+ *      { selector: string, css: StylesheetStyle }
+ *  - The correct type is: `cytoscape.StylesheetCSS`
+ *    → We originally (incorrectly) used:
+ *        type CySelectorStyle = cytoscape.Stylesheet ❌
+ *    → Fixed as:
+ *        type CySelectorStyle = cytoscape.StylesheetCSS ✅
+ * 
+ * ✅ Property Naming Error:
+ *  - Cytoscape uses `css`, NOT `style`.
+ *    → `style: {...}` caused TS error: "Object literal may only specify known properties, and 'style' does not exist…"
+ *    → Fixed by replacing `style:` with `css:` in every rule block.
+ *
+ * ✅ TypeScript Incompatibility (Dynamic Properties):
+ *  - Cytoscape allows dynamic mappings via `'data(attrName)'`, e.g.:
+ *      'shape': 'data(shape)'
+ *  - But TS definition of `'shape'` expects strict enum: `NodeShape`.
+ *    → TS error: "Type 'data(shape)' is not assignable to..."
+ *    → Fix: Explicit type coercion with `as any`:
+ *        `'shape': 'data(shape)' as any`
+ *
+ * ✅ Other TypeScript Issues Addressed:
+ *  - Unused alias: `type CyStyle = cytoscape.StylesheetStyle` → removed
+ *  - Clarified difference:
+ *      - `StylesheetStyle`: type of CSS block only
+ *      - `StylesheetCSS`: full object including `selector` and `css`
+ * 
+ * ✅ General Best Practices:
+ *  - Always use `css:` not `style:` (Cytoscape 3.x+)
+ *  - Use explicit typing for style array: `StylesheetCSS[]`
+ *  - Prefer type-safe parameters where possible, fallback to `as any` for dynamic `data(...)` mappings
+ *
+ * ⚠️ Beware of Cytoscape type mismatches: the JS runtime accepts more flexibility than the TS definitions allow.
+ *    When necessary, **use `as any` cautiously** on selector rules to bypass TypeScript's stricter expectations.
+ *
+ * ---
  */
+
 import cytoscape from 'cytoscape';
 import { StyleParams } from '../stores/graphSettingsStore';
 
 // Define the expected Cytoscape style object type for clarity
-type CyStyle = cytoscape.StylesheetStyle; // Base style properties
-type CySelectorStyle = cytoscape.Stylesheet; // Object with selector + style
+// Use StylesheetCSS as it represents the { selector: '...', style: {...} } structure
+type CySelectorStyle = cytoscape.StylesheetCSS; // ✅ correct interface // Object with selector + style
 
 /**
  * Helper function to get the computed value of a CSS variable.
@@ -60,7 +102,7 @@ export const buildCytoscapeStyles = (sp: StyleParams): CySelectorStyle[] => {
         // --- Base Node Style ---
         {
             selector: 'node',
-            style: {
+            css: {
                 'background-color': nodeBgColor,
                 'color': nodeTextColor, // Text color inside the node
                 'label': 'data(label)', // Display the 'label' data property
@@ -82,21 +124,21 @@ export const buildCytoscapeStyles = (sp: StyleParams): CySelectorStyle[] => {
         {
             // Apply specific background color if node has a 'color' data property
             selector: 'node[color]',
-            style: {
+            css: {
                 'background-color': 'data(color)',
             },
         },
         {
             // Apply specific shape if node has a 'shape' data property
             selector: 'node[shape]',
-            style: {
-                'shape': 'data(shape)',
+            css: {
+                'shape': 'data(shape)' as any,
             },
         },
         // --- Base Edge Style ---
         {
             selector: 'edge',
-            style: {
+            css: {
                 'width': `${sp.edgeWidth}px`,
                 'line-color': edgeLineColor,
                 'target-arrow-shape': 'triangle',
@@ -116,7 +158,7 @@ export const buildCytoscapeStyles = (sp: StyleParams): CySelectorStyle[] => {
             // Apply specific line/arrow color if edge has 'edgeColor' data property
             // This 'edgeColor' is now set automatically in graphDataStore.addEdge
             selector: 'edge[edgeColor]',
-            style: {
+            css: {
                 'line-color': 'data(edgeColor)',
                 'target-arrow-color': 'data(edgeColor)',
             },
@@ -124,7 +166,7 @@ export const buildCytoscapeStyles = (sp: StyleParams): CySelectorStyle[] => {
         {
            // Apply specific outline color for edge labels if edge has 'outlineColor'
            selector: 'edge[outlineColor]',
-            style: {
+            css: {
                 'text-outline-color': 'data(outlineColor)',
                 'text-outline-width': 2,
             }
@@ -132,7 +174,7 @@ export const buildCytoscapeStyles = (sp: StyleParams): CySelectorStyle[] => {
         // --- Selection Style ---
         {
             selector: ':selected',
-            style: {
+            css: {
                 'border-width': 3,
                 'border-color': getCssVar('--color-accent-secondary'), // Use accent color for selection outline
             },
