@@ -1,17 +1,25 @@
 // src/components/MetricsSidebar.tsx
 /**
- * Container component for the metrics sidebar.
- * It renders the sidebar frame, fetches graph metrics using the useGraphMetrics hook,
- * displays basic stats, provides UI for selecting overlays, and conditionally renders
- * specific metric visualization components (DegreeHistogram, HaloOverlayCanvas).
+ * Container component for the metrics sidebar UI elements.
+ * Renders the sidebar frame, fetches graph metrics using the useGraphMetrics hook,
+ * displays basic stats, provides UI for selecting overlays (state managed by parent),
+ * and renders the DegreeHistogram component. The actual overlay canvas is rendered separately by App.tsx.
+ * ---
+ * ✅ Refactoring Note (Overlay Canvas):
+ *  - This component NO LONGER renders the HaloOverlayCanvas.
+ *  - Responsibility for rendering the overlay canvas is moved to App.tsx
+ *    to ensure correct positioning relative to the GraphCanvas.
+ *  - This component manages the UI controls (dropdown) for selecting the
+ *    overlay type, and communicates the choice up via props (setOverlayType).
+ * ---
  */
-import React, { useState, useMemo, MutableRefObject } from 'react';
+import React, { useMemo, MutableRefObject } from 'react'; // Removed useState
 import { Core } from 'cytoscape';
-import { rollup } from 'd3-array'; // Keep rollup for histogram processing
+import { rollup } from 'd3-array';
 
 // Import stores and hooks
 import { useGraphDataStore } from '../stores/graphDataStore';
-import { useGraphMetrics, GraphMetrics } from '../hooks/useGraphMetrics'; // Import the new hook
+import { useGraphMetrics } from '../hooks/useGraphMetrics'; // Keep hook to get data for histogram
 import { useTranslations } from '../hooks/useTranslations';
 
 // Import UI Components
@@ -19,62 +27,58 @@ import Button from './ui/Button';
 import { X } from 'lucide-react';
 
 // Import Child Visualization Components
-import DegreeHistogram, { DegreeBucket } from './metrics/DegreeHistogram'; // Adjust path
-import HaloOverlayCanvas from './metrics/HaloOverlayCanvas'; // Adjust path
+import DegreeHistogram, { DegreeBucket } from './metrics/DegreeHistogram';
+// REMOVED: import HaloOverlayCanvas from './metrics/HaloOverlayCanvas';
 
-// Type for the overlay selection state
-type OverlayType = 'none' | 'degree';
+// Type for the overlay selection state - Define locally or import if shared
+export type OverlayType = 'none' | 'degree';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   cyRef: MutableRefObject<Core | null>;
+  // Props for lifted state
+  overlayType: OverlayType;
+  setOverlayType: (type: OverlayType) => void;
 }
 
-const MetricsSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
+const MetricsSidebar: React.FC<Props> = ({
+    open,
+    onClose,
+    cyRef,
+    overlayType, // Receive from parent
+    setOverlayType // Receive from parent
+}) => {
   const { t } = useTranslations();
 
-  // Get basic counts from data store
+  // Get basic counts
   const nodeCount = useGraphDataStore((s) => s.nodes.length);
   const edgeCount = useGraphDataStore((s) => s.edges.length);
 
-  // Get calculated metrics from the custom hook
-  const { degreeData }: GraphMetrics = useGraphMetrics(cyRef);
-
-  // State for the selected overlay type
-  const [overlayType, setOverlayType] = useState<OverlayType>('none');
+  // Get calculated metrics from the custom hook (needed for histogram)
+  const { degreeData } = useGraphMetrics(cyRef);
 
   /* Process data for Histogram */
   const histogramData: DegreeBucket[] = useMemo(() => {
+    // Use optional chaining for safety, though hook should initialize map
     if (!degreeData || degreeData.size === 0) return [];
     const degrees = Array.from(degreeData.values());
     const counts = rollup(degrees, (v) => v.length, (d) => d);
     return Array.from(counts, ([deg, cnt]) => ({ deg, cnt })).sort((a, b) => a.deg - b.deg);
-  }, [degreeData]); // Calculate when degreeData changes
+  }, [degreeData]);
 
   return (
-    // Sidebar container
+    // Sidebar container styles remain the same
     <aside
-      // Use fixed positioning for sidebar itself, canvas is separate
       className={`fixed right-0 top-0 h-full w-80 bg-bg-secondary bg-opacity-80 dark:bg-opacity-70 backdrop-filter backdrop-blur-lg border-l border-border rounded-l-lg shadow-xl transform transition-transform z-30 ${
         open ? 'translate-x-0' : 'translate-x-full'
       }`}
       aria-labelledby="metrics-title" role="region"
     >
-       {/* --- Render Halo Overlay Canvas --- */}
-       {/* It's positioned absolutely relative to viewport/graph area, not inside sidebar */}
-       {/* We only render it when the sidebar is open AND the overlay type is active */}
-       {open && (
-          <HaloOverlayCanvas
-             cyRef={cyRef}
-             degreeData={degreeData}
-             isActive={overlayType === 'degree'} // Only active for degree overlay
-          />
-       )}
-
+       {/* *** REMOVED rendering of HaloOverlayCanvas from here *** */}
 
       {/* Header */}
-      <div className="relative flex items-center justify-between p-4 border-b border-border z-10"> {/* Ensure header is above potential internal canvas */}
+      <div className="relative flex items-center justify-between p-4 border-b border-border z-10">
         <h2 id="metrics-title" className="text-lg font-semibold">{t('graphMetrics')}</h2>
         <Button variant="ghost" size="sm" icon={X} onClick={onClose} title={t('close')} className="p-1"/>
       </div>
@@ -85,14 +89,14 @@ const MetricsSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
         <p><strong>{t('nodes')}:</strong> {nodeCount}</p>
         <p><strong>{t('edges')}:</strong> {edgeCount}</p>
 
-        {/* Metric Overlay Selector */}
+        {/* Metric Overlay Selector - uses props now */}
         <div>
           <label htmlFor="metric-overlay-select" className="label-text mb-1">{t('overlayMetric')}</label>
           <select
              id="metric-overlay-select"
              className="input-base"
-             value={overlayType}
-             onChange={(e) => setOverlayType(e.target.value as OverlayType)}
+             value={overlayType} // Use prop value
+             onChange={(e) => setOverlayType(e.target.value as OverlayType)} // Call prop setter
           >
             <option value="none">{t('overlayNone')}</option>
             <option value="degree">{t('overlayDegree')}</option>
@@ -102,7 +106,6 @@ const MetricsSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
         {/* Degree Histogram */}
         <div>
           <h4 className="label-text mb-2">{t('degreeDistribution')}</h4>
-           {/* Render the histogram component, passing data */}
            <DegreeHistogram histogramData={histogramData} />
            {/* Show message if no data instead of component showing it */}
            {histogramData.length === 0 && nodeCount > 0 && (
@@ -112,7 +115,6 @@ const MetricsSidebar: React.FC<Props> = ({ open, onClose, cyRef }) => {
                 <p className="text-text-muted text-sm">No data</p>
            )}
         </div>
-         {/* Add sections for other metrics/visualizations here */}
       </div>
     </aside>
   );
