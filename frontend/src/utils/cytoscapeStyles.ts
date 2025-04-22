@@ -114,10 +114,21 @@ export const buildCytoscapeStyles = (sp: StyleParams): CySelectorStyle[] => {
                 'text-outline-color': nodeOutlineColor,
                 // Default shape
                 'shape': 'ellipse',
-                // Size the node to fit its label
-                'width': 'label',
-                'height': 'label',
-                'padding': '10px', // Padding around the label text
+                // Size the node to fit its label (function-based width, height auto)
+                // FIX: Replace deprecated 'label' value for width/height
+                'width': (ele: cytoscape.NodeSingular) => { // FIX: Add type annotation
+                    const label = ele.data('label') || '';
+                    // Estimate width: Adjust multiplier based on font size / testing
+                    const estimatedWidth = label.length * (sp.nodeFont * 0.6) + (sp.nodePadding * 2); // Use dynamic padding // Factor in font size, add padding
+                    return Math.max(40, estimatedWidth) + 'px'; // Ensure minimum width, add 'px'
+                },
+                // Height often works better with fixed padding or auto if width is set
+                // Let's try a fixed padding approach first, adjust if needed
+                 'height': (_ele: cytoscape.NodeSingular) => { // FIX: Mark ele as unused with _
+                     // Example: Fixed height based on font size + padding
+                     return (sp.nodeFont + (sp.nodePadding * 2)) + 'px'; // Use dynamic padding // Font size + vertical padding
+                 },
+                'padding': '10px', // Ensure padding is explicitly set
             },
         },
         // --- Node Style Overrides from Data ---
