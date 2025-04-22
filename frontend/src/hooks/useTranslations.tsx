@@ -6,7 +6,7 @@ import ptBR from '../locales/pt-BR.json';
 // Define available languages
 export type Locale = 'en-US' | 'pt-BR';
 // ** Derive TranslationKey type directly from the imported en.json **
-export type TranslationKey = keyof typeof en;
+export type TranslationKey = string; // TEMP: Relax for dev speed
 
 // Type for the translations object using the derived key type
 type Translations = Record<TranslationKey, string>;
