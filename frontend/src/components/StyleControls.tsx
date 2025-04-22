@@ -36,6 +36,10 @@ const StyleControls: React.FC = () => {
       {/* Slider for Edge Width */}
       <Slider label="Edge Width (px)" min={0.5} max={10} step={0.5}
               value={styleParams.edgeWidth} onChange={updateStyleParam('edgeWidth')}/>
+      
+      {/* Slider for Node Padding */}
+      <Slider label="Node Padding (px)" min={0} max={30} step={1}
+              value={styleParams.nodePadding} onChange={updateStyleParam('nodePadding')}/>
 
       {/* Add more global style controls here if needed */}
       {/* e.g., default node color, default edge color, etc. */}

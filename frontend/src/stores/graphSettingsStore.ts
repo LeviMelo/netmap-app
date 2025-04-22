@@ -31,6 +31,7 @@ export interface LayoutParams {
 export interface StyleParams {
   nodeFont: number;
   edgeWidth: number;
+  nodePadding: number;
   // Add other style params like default colors, shapes if not data-driven
 }
 
@@ -58,6 +59,7 @@ export const useGraphSettingsStore = create<GraphSettingsState>((set) => ({
     // Default values matching the old store
     nodeFont: 12,
     edgeWidth: 2,
+    nodePadding: 10,
   },
 
   setLayoutName: (name) => set({ layoutName: name }),
