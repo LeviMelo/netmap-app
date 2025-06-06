@@ -1,45 +1,82 @@
-import React from 'react';
-import { LucideIcon } from 'lucide-react';
+/**
+ * Button Component
+ * 
+ * A reusable button component that implements the design system with
+ * primary, secondary, and ghost variants. Supports icons, loading states,
+ * and accessibility features with proper touch targets.
+ */
 
-type ButtonVariant = 'primary' | 'secondary' | 'warning' | 'danger' | 'ghost';
-type ButtonSize = 'sm' | 'md' | 'lg';
+import React from 'react'
+import { LucideIcon } from 'lucide-react'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: ButtonVariant;
-    size?: ButtonSize;
-    icon?: LucideIcon;
-    iconPosition?: 'left' | 'right';
-    children?: React.ReactNode;
-    title?: string; // Keep title for accessibility
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'ghost'
+  size?: 'sm' | 'md' | 'lg'
+  icon?: LucideIcon
+  iconPosition?: 'left' | 'right'
+  loading?: boolean
+  children: React.ReactNode
 }
 
-const Button: React.FC<ButtonProps> = ({
-    children, variant = 'primary', size = 'md', icon: Icon, iconPosition = 'left', className = '', title = '', ...props
+export const Button: React.FC<ButtonProps> = ({
+  variant = 'primary',
+  size = 'md',
+  icon: Icon,
+  iconPosition = 'left',
+  loading = false,
+  children,
+  className = '',
+  disabled,
+  ...props
 }) => {
-    // Map props to component class names defined in index.css
-    const variantClass = `btn-${variant}`;
-    const sizeClass = `btn-${size}`; // Apply the size class
-
-    const iconSizeStyles: Record<ButtonSize, string> = {
-        sm: 'w-3.5 h-3.5',
-        md: 'w-4 h-4',
-        lg: 'w-5 h-5',
-    };
-    const iconMargin = children ? (iconPosition === 'left' ? 'mr-1.5' : 'ml-1.5') : '';
-    const accessibleTitle = title || (typeof children === 'string' ? children : undefined);
-
-    return (
-        <button
-            // Combine base 'btn' class with variant AND size classes
-            className={`btn ${variantClass} ${sizeClass} ${className}`}
-            title={accessibleTitle}
-            {...props}
-        >
-            {Icon && iconPosition === 'left' && <Icon className={`${iconSizeStyles[size]} ${iconMargin}`} aria-hidden="true" />}
-            {children}
-            {Icon && iconPosition === 'right' && <Icon className={`${iconSizeStyles[size]} ${iconMargin}`} aria-hidden="true" />}
-        </button>
-    );
-};
-
-export default Button;
+  const baseClasses = 'btn-base transition-standard'
+  
+  const variantClasses = {
+    primary: 'btn-primary',
+    secondary: 'btn-secondary',
+    ghost: 'btn-ghost',
+  }
+  
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-xs min-h-[36px]',
+    md: 'px-4 py-2 text-sm min-h-[44px]',
+    lg: 'px-6 py-3 text-base min-h-[48px]',
+  }
+  
+  const isDisabled = disabled || loading
+  const disabledClasses = isDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+  
+  const combinedClassName = [
+    baseClasses,
+    variantClasses[variant],
+    sizeClasses[size],
+    disabledClasses,
+    className,
+  ].filter(Boolean).join(' ')
+  
+  const renderIcon = () => {
+    if (loading) {
+      return (
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+      )
+    }
+    
+    if (Icon) {
+      return <Icon size={16} />
+    }
+    
+    return null
+  }
+  
+  return (
+    <button
+      className={combinedClassName}
+      disabled={isDisabled}
+      {...props}
+    >
+      {iconPosition === 'left' && renderIcon()}
+      {children}
+      {iconPosition === 'right' && renderIcon()}
+    </button>
+  )
+} 

@@ -37,7 +37,17 @@ export default {
       },
       // Extend other theme aspects if needed (fontFamily, spacing, etc.)
       fontFamily: {
-         sans: ['Inter', 'system-ui', 'sans-serif'], // Add Inter font
+         sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'sans-serif'],
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-in-out',
+        'slide-in-right': 'slideInRight 0.3s ease-in-out',
+        'slide-in-bottom': 'slideInBottom 0.3s ease-in-out',
+        'pop': 'pop 0.15s ease-in-out',
+        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      backdropBlur: {
+        xs: '2px',
       },
     },
   },

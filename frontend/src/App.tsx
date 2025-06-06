@@ -1,191 +1,135 @@
-// src/App.tsx
 /**
- * Main application component. Sets up the overall layout structure including
- * TopBar, resizable Sidebar, GraphCanvas area, and overlay Sidebars (Metrics, Share).
- * Manages the state for sidebar visibility, left sidebar width, and the active overlay type.
- * Renders the HaloOverlayCanvas directly over the graph area when active.
- * Passes the Cytoscape instance reference down where needed.
- * ---
- * ✅ Refactoring Note (Overlay Canvas):
- *  - App now manages the `overlayType` state.
- *  - It conditionally renders `<HaloOverlayCanvas>` as a direct child of the
- *    graph area container (`div.flex-1.relative`), ensuring correct positioning.
- *  - `MetricsSidebar` receives `overlayType` and `setOverlayType` as props
- *    to control the state from its dropdown.
- * ---
- * ✅ Debugging Notes (Overlay Rendering):
- *  - Added console logs to track overlayType state changes.
- *  - Added console logs to track the rendering decision for HaloOverlayCanvas.
- * ---
+ * Main Application Component
+ * 
+ * The root component that orchestrates the entire concept map builder interface.
+ * Implements the glassmorphism design system with proper responsive layout:
+ * - Primary Sidebar with main navigation
+ * - Contextual Topbar with secondary navigation
+ * - Central Canvas area for the graph
+ * - Utility Panel for context-sensitive controls
+ * - Theme management and responsive behavior
  */
-// Added useEffect for logging
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Core } from 'cytoscape'; // Still need Core type
 
-// Import layout components
-import TopBar from './components/TopBar';
-import Sidebar from './components/Sidebar';
-import GraphCanvas from './components/GraphCanvas';
-import MetricsSidebar, { OverlayType } from './components/MetricsSidebar'; // Import OverlayType
-import ShareSidebar from './components/ShareSidebar';
-import HaloOverlayCanvas from './components/metrics/HaloOverlayCanvas'; // Import the overlay canvas
-
-// No store imports needed directly in App.tsx anymore
+import React, { useEffect } from 'react'
+import { useAppStore } from './stores/appState'
+import { Sidebar } from './components/layout/Sidebar'
+import { ContextualTopbar } from './components/layout/ContextualTopbar'
+import { UtilityPanel } from './components/layout/UtilityPanel'
 
 const App: React.FC = () => {
-  // Ref to hold the Cytoscape Core instance, passed down from GraphCanvas
-  const cyRef = useRef<Core | null>(null);
+  const { settings, toggleTheme, setUtilityPanelVisible } = useAppStore()
 
-  // Local state for overlay sidebar visibility
-  const [metricsOpen, setMetricsOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-
-  // Local state for resizable left sidebar width
-  const [leftWidth, setLeftWidth] = useState(300); // Initial width
-  const isResizing = useRef(false); // Track resizing state
-
-  // --- State for active overlay type (Lifted from MetricsSidebar) ---
-  const [overlayType, setOverlayType] = useState<OverlayType>('none');
-
-  // --- DEBUG: Log overlayType changes ---
+  // Initialize theme on mount
   useEffect(() => {
-    console.log(`[App] overlayType changed to: ${overlayType}`);
-  }, [overlayType]);
-  // --- END DEBUG ---
+    const html = document.documentElement
+    html.classList.toggle('dark', settings.theme === 'dark')
+  }, [settings.theme])
 
-
-  // Callback passed to GraphCanvas to receive the cy instance
-  const handleCyInit = useCallback((cy: Core) => {
-    console.log("[App] Cytoscape instance initialized"); // Keep existing log
-    cyRef.current = cy;
-  }, []); // Empty dependency array, this callback itself doesn't change
-
-  // Toggle functions for sidebars (now also handle resetting overlayType)
-  const toggleMetrics = () => {
-    const closing = metricsOpen; // Check state *before* update
-    const newState = !metricsOpen;
-    console.log(`[App] Toggling metrics. New state will be: ${newState}`); // Log intent
-    setMetricsOpen(newState);
-    if (newState && shareOpen) setShareOpen(false); // Close share if opening metrics
-    // Reset overlay only if *closing* the sidebar
-    if (closing) {
-        console.log("[App] Metrics sidebar closing, resetting overlayType to 'none'"); // Log reset reason
-        setOverlayType('none');
-    }
-  };
-  const toggleShare = () => {
-    const newState = !shareOpen;
-    console.log(`[App] Toggling share. New state will be: ${newState}`); // Log intent
-    setShareOpen(newState);
-    // If closing metrics sidebar because share is opening, reset overlay
-    if (newState && metricsOpen) {
-        console.log("[App] Share opening, closing metrics and resetting overlayType to 'none'"); // Log reset reason
-        setMetricsOpen(false);
-        setOverlayType('none');
-    }
-  };
-
-  // --- Resizing Logic (remains the same) ---
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isResizing.current = true;
-    const startX = e.clientX; const startW = leftWidth;
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isResizing.current) return;
-      const dx = moveEvent.clientX - startX;
-      const newWidth = Math.max(200, Math.min(startW + dx, window.innerWidth - 200));
-      setLeftWidth(newWidth);
-    };
-    const handleMouseUp = () => {
-      if (isResizing.current) {
-        isResizing.current = false;
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      }
-    };
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [leftWidth]);
-
-
-  // --- Determine if the overlay should be rendered ---
-  const shouldRenderOverlay = metricsOpen && overlayType === 'degree';
-  // --- DEBUG: Log rendering decision ---
-  useEffect(() => {
-       // Log whenever the decision factors change
-       console.log(`[App] Should render overlay? ${shouldRenderOverlay} (metricsOpen: ${metricsOpen}, overlayType: ${overlayType})`);
-  }, [shouldRenderOverlay, metricsOpen, overlayType]);
-  // --- END DEBUG ---
-
-
-  return (
-    // Use flex column for overall structure
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-primary text-text-base">
-      {/* Top Bar (fixed height, z-20 implied by sticky) */}
-      <TopBar onMetricsToggle={toggleMetrics} onShareToggle={toggleShare} />
-
-      {/* Main Content Area (flexible height) */}
-      <div className="flex flex-1 overflow-hidden"> {/* Use flex-1 to fill remaining height */}
-
-        {/* Left Sidebar (Resizable) */}
-        <div
-          style={{ width: `${leftWidth}px` }}
-          className="flex-shrink-0 bg-bg-secondary border-r border-border overflow-y-auto no-scrollbar"
-        >
-          <Sidebar />
-        </div>
-
-        {/* Resizer Handle */}
-        <div
-          className="w-1.5 cursor-col-resize bg-border hover:bg-accent-primary transition-colors flex-shrink-0"
-          onMouseDown={handleMouseDown}
-          title="Resize sidebar" // Accessibility
-        />
-
-        {/* Main Canvas Area (takes remaining space) */}
-        {/* Apply position: relative here to be the positioning context for the overlay */}
-        <div className="flex-1 relative overflow-hidden z-0"> {/* Added z-0 */}
-          {/* GraphCanvas needs the cy initialization callback */}
-          <GraphCanvas onCyInit={handleCyInit} />
-
-           {/* --- Render Halo Overlay Canvas Conditionally HERE --- */}
-           {/* Rendered as a direct child, positioned absolutely relative to this div */}
-           {/* Only render if the specific overlay should be active */}
-           {shouldRenderOverlay && (
-                <>
-                {/* DEBUG: Log when attempting to render */}
-                {console.log("[App] Rendering HaloOverlayCanvas...")}
-                <HaloOverlayCanvas
-                    cyRef={cyRef}
-                    // isActive prop is true only if this component renders
-                    isActive={true}
-                />
-                </>
-           )}
-           {/* ---------------------------------------------------- */}
+  // Enhanced Canvas Area with Dynamic Background
+  const CanvasArea = () => (
+    <div className="flex-1 relative overflow-hidden">
+      {/* Dynamic Background with Animated Gradient */}
+      <div className="absolute inset-0 bg-bg-primary">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-secondary/5 via-accent-tertiary/3 to-accent-primary/5"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(14,165,233,0.1),transparent_50%)]"></div>
+        
+        {/* Animated Grid Pattern */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="h-full w-full bg-[linear-gradient(rgba(15,23,42,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
         </div>
       </div>
-
-      {/* Right Sidebars (Overlays - Render conditionally, z-30) */}
-      {/* Pass the overlay state and setter down to MetricsSidebar */}
-      <MetricsSidebar
-        open={metricsOpen}
-        // Modify onClose to also reset overlay type
-        onClose={() => {
-            console.log("[App] MetricsSidebar onClose called, setting metricsOpen=false, overlayType='none'"); // Log close action
-            setMetricsOpen(false); setOverlayType('none');
-        }}
-        cyRef={cyRef}
-        overlayType={overlayType} // Pass state down
-        setOverlayType={setOverlayType} // Pass setter down
-      />
-      <ShareSidebar // z-30 implied by being rendered after MetricsSidebar
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        cyRef={cyRef}
-      />
+      
+      {/* Welcome Content */}
+      <div className="relative z-10 flex items-center justify-center h-full p-8">
+        <div className="text-center max-w-2xl">
+          {/* App Icon with Animation */}
+          <div className="mb-8">
+            <div className="w-24 h-24 mx-auto relative group">
+              <img 
+                src="/src/assets/netmap_logo.png" 
+                alt="NetMap Logo" 
+                className="w-full h-full object-contain filter drop-shadow-2xl transition-transform group-hover:scale-110 duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-secondary/20 to-accent-tertiary/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute -inset-4 bg-gradient-to-r from-accent-secondary to-accent-tertiary opacity-20 blur-xl animate-pulse"></div>
+            </div>
+          </div>
+          
+          <h1 className="text-display font-bold mb-4 bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-tertiary bg-clip-text text-transparent">
+            Concept Map Canvas
+          </h1>
+          <p className="text-body-large text-text-muted mb-8 leading-relaxed">
+            Your interactive graph will appear here. Use the navigation panel to load data, 
+            edit nodes and edges, apply layouts, and analyze your concept map.
+          </p>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-4 justify-center flex-wrap">
+            <button 
+              onClick={toggleTheme}
+              className="btn-base btn-secondary group"
+            >
+              <span className="relative z-10">
+                Switch to {settings.theme === 'dark' ? 'Light' : 'Dark'} Mode
+              </span>
+            </button>
+            <button 
+              onClick={() => setUtilityPanelVisible(true)}
+              className="btn-base btn-primary group"
+            >
+              <span className="relative z-10">Open Controls</span>
+            </button>
+          </div>
+          
+          {/* Feature Highlights */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { title: 'Smart Import', desc: 'Load from JSON/CSV with validation', icon: '📥' },
+              { title: 'Visual Editor', desc: 'Intuitive drag & drop editing', icon: '✏️' },
+              { title: 'Export Ready', desc: 'PNG, SVG, CSV output formats', icon: '📤' }
+            ].map((feature, index) => (
+              <div key={index} className="card-base text-center group hover:scale-105 transition-all duration-300">
+                <div className="text-2xl mb-2">{feature.icon}</div>
+                <h3 className="text-body font-semibold text-text-base mb-1">{feature.title}</h3>
+                <p className="text-small text-text-muted">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
-  );
-};
+  )
 
-export default App;
+  return (
+    <div className="w-full h-full flex bg-bg-primary text-text-base">
+      {/* Primary Sidebar Navigation */}
+      <Sidebar />
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col md:ml-64">
+        {/* Contextual Secondary Navigation */}
+        <ContextualTopbar />
+        
+        {/* Canvas and Utility Panel Container */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Central Canvas Area */}
+          <div className="flex-1 relative">
+            <main 
+              className="w-full h-full"
+              role="region" 
+              aria-label="Concept Map Canvas"
+            >
+              <CanvasArea />
+            </main>
+          </div>
+          
+          {/* Utility Panel - Desktop: Right side, Mobile: Bottom drawer */}
+          <UtilityPanel />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default App
