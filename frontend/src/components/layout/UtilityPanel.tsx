@@ -21,10 +21,19 @@ export const UtilityPanel: React.FC<UtilityPanelProps> = ({ className = '' }) =>
     utilityPanelVisible, 
     setUtilityPanelVisible,
     utilityPanelWidth,
-    utilityPanelHeight
+    utilityPanelHeight,
+    elements
   } = useAppStore()
 
-  if (!utilityPanelVisible) {
+  // Only show utility panel if graph has data and mode requires it
+  const shouldShowUtilityPanel = (elements.nodes.length > 0 || elements.edges.length > 0) && 
+    ['manualEdit', 'paint', 'layout', 'dataIO', 'analyze'].includes(mode)
+
+  if (!utilityPanelVisible || !shouldShowUtilityPanel) {
+    // Don't show the floating button if there's no graph data
+    if (elements.nodes.length === 0 && elements.edges.length === 0) {
+      return null
+    }
     return (
       <button
         onClick={() => setUtilityPanelVisible(true)}

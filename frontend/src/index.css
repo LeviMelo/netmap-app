@@ -20,12 +20,13 @@
   --color-bg-secondary: #ffffff;   /* Card backgrounds, panels */
   --color-bg-tertiary: #f1f5f9;    /* Alternative surfaces */
 
-  /* Enhanced Dark Blue & Orange Theme */
-  --color-accent-primary: #0f172a;        /* Deep slate for primary */
-  --color-accent-primary-hover: #1e293b;  /* Lighter for hover */
+  /* Enhanced Golden Blue & Orange Theme */
+  --color-accent-primary: #0ea5e9;        /* Ocean blue for primary */
+  --color-accent-primary-hover: #0284c7;  /* Darker blue for hover */
   --color-accent-secondary: #f97316;      /* Vibrant orange */
   --color-accent-secondary-hover: #ea580c; /* Darker orange for hover */
-  --color-accent-tertiary: #0ea5e9;       /* Bright cyan secondary */
+  --color-accent-tertiary: #eab308;       /* Golden yellow tertiary */
+  --color-accent-quaternary: #fbbf24;     /* Lighter golden accent */
 
   /* Text Colors */
   --color-text-base: #0f172a;      /* Deep slate - Main body text */
@@ -48,9 +49,9 @@
   --glass-backdrop-overlay: rgba(0, 0, 0, 0.4);  /* Modal backdrop */
   
   /* Gradient Definitions */
-  --gradient-primary: linear-gradient(135deg, #0f172a 0%, #f97316 100%);
-  --gradient-secondary: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
-  --gradient-accent: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #eab308 100%);
+  --gradient-secondary: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #f97316 100%);
 }
 
 /* Dark Mode Colors - Enhanced for dramatic effect */
@@ -59,11 +60,12 @@
   --color-bg-secondary: #1e293b;   /* Slightly lighter slate for cards */
   --color-bg-tertiary: #334155;    /* Medium slate for surfaces */
 
-  --color-accent-primary: #1e293b;        /* Dark slate primary */
-  --color-accent-primary-hover: #334155;  /* Lighter slate for hover */
+  --color-accent-primary: #0ea5e9;        /* Ocean blue primary */
+  --color-accent-primary-hover: #0284c7;  /* Darker blue for hover */
   --color-accent-secondary: #f97316;      /* Vibrant orange accent */
   --color-accent-secondary-hover: #fb923c; /* Lighter orange for hover */
-  --color-accent-tertiary: #0ea5e9;       /* Bright cyan for dark mode */
+  --color-accent-tertiary: #eab308;       /* Golden yellow for dark mode */
+  --color-accent-quaternary: #fbbf24;     /* Lighter golden accent */
 
   --color-text-base: #f8fafc;      /* Near white - Main body text */
   --color-text-muted: #94a3b8;     /* Light slate - Subdued text */
@@ -81,9 +83,9 @@
   --glass-backdrop-overlay: rgba(0, 0, 0, 0.6); /* Darker modal backdrop */
   
   /* Dark Mode Gradients */
-  --gradient-primary: linear-gradient(135deg, #1e293b 0%, #f97316 100%);
-  --gradient-secondary: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-  --gradient-accent: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
+  --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #eab308 100%);
+  --gradient-secondary: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #f97316 100%);
 }
 
 /* ===== BASE STYLES ===== */
@@ -380,18 +382,34 @@ body {
 }
 
 .tab-button:hover {
-  color: var(--color-accent-secondary);
-  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-accent-primary);
+  background: rgba(14, 165, 233, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 12px rgba(14, 165, 233, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .tab-button.active {
-  color: var(--color-accent-secondary);
+  color: var(--color-accent-primary);
   font-weight: 700;
-  background: rgba(249, 115, 22, 0.1);
-  border: 1px solid rgba(249, 115, 22, 0.2);
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  transform: translateY(-1px);
   box-shadow: 
-    0 4px 12px rgba(249, 115, 22, 0.2),
+    0 8px 25px rgba(14, 165, 233, 0.25),
+    0 4px 12px rgba(234, 179, 8, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.tab-button.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-primary);
+  opacity: 0.1;
+  border-radius: inherit;
+  z-index: -1;
 }
 
 .tab-button.active::after {
@@ -401,11 +419,11 @@ body {
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--gradient-accent);
+  background: var(--gradient-primary);
   border-radius: 1.5px;
   box-shadow: 
-    0 0 8px rgba(249, 115, 22, 0.6),
-    0 2px 4px rgba(249, 115, 22, 0.3);
+    0 0 12px rgba(14, 165, 233, 0.8),
+    0 0 6px rgba(234, 179, 8, 0.6);
 }
 
 /* ===== CARD STYLES ===== */
@@ -494,6 +512,12 @@ body {
   animation: pop 0.15s ease-in-out;
 }
 
+/* Removed continuous animations for better performance and less distraction */
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -526,6 +550,8 @@ body {
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
+
+/* Removed keyframes for continuous animations */
 
 /* ===== UTILITY CLASSES ===== */
 .shadow-glow-primary {
@@ -570,6 +596,15 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* ===== ACCESSIBILITY HELPERS ===== */
