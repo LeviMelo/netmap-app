@@ -26,7 +26,8 @@ export const GraphCanvas: React.FC = () => {
   const cytoscapeInstanceRef = useRef<CytoscapeInstance | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize Cytoscape when container is ready
+  // FIX: Changed dependency array to [] to ensure this effect runs only ONCE on mount.
+  // The check for `containerRef.current` inside the effect is the correct way to handle timing.
   useEffect(() => {
     if (!containerRef.current || isInitialized) return;
 
@@ -56,7 +57,7 @@ export const GraphCanvas: React.FC = () => {
         setIsInitialized(false);
       }
     };
-  }, [containerRef.current]);
+  }, []); // Empty dependency array is correct here.
 
   // Update mode when it changes
   useEffect(() => {
@@ -221,16 +222,19 @@ export const GraphCanvas: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 relative overflow-hidden bg-bg-primary">
+    // FIX: The root div now provides the relative positioning context and fills the available flex space.
+    <div className="w-full h-full relative overflow-hidden bg-bg-primary">
       {/* Canvas Container */}
+      {/* FIX: This div is now positioned absolutely to guarantee it fills its parent,
+          ensuring it has non-zero dimensions for Cytoscape to initialize. */}
       <div 
         ref={containerRef} 
-        className="w-full h-full"
-        style={{ minHeight: '400px' }}
+        className="absolute inset-0"
       />
       
       {/* Canvas Controls */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+      {/* FIX: Added z-10 to ensure controls appear on top of the absolutely positioned canvas */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
         <button
           onClick={handleZoomIn}
           className="p-2 rounded-lg glass-level-3 hover:bg-accent-primary/10 text-accent-primary transition-all"
@@ -262,14 +266,16 @@ export const GraphCanvas: React.FC = () => {
       </div>
 
       {/* Status Bar */}
-      <div className="absolute bottom-4 left-4 px-3 py-2 rounded-lg glass-level-3 text-small text-text-muted">
+      {/* FIX: Added z-10 */}
+      <div className="absolute bottom-4 left-4 px-3 py-2 rounded-lg glass-level-3 text-small text-text-muted z-10">
         {elements.nodes.length} nodes, {elements.edges.length} edges
         {selectedNodes.length > 0 && ` • ${selectedNodes.length} nodes selected`}
         {selectedEdges.length > 0 && ` • ${selectedEdges.length} edges selected`}
       </div>
 
       {/* Mode Indicator */}
-      <div className="absolute top-4 right-4 px-3 py-2 rounded-lg glass-level-3 text-small">
+      {/* FIX: Added z-10 */}
+      <div className="absolute top-4 right-4 px-3 py-2 rounded-lg glass-level-3 text-small z-10">
         <span className="text-text-muted">Mode: </span>
         <span className="text-accent-primary font-medium capitalize">
           {mode.replace(/([A-Z])/g, ' $1').toLowerCase()}
