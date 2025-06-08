@@ -17,7 +17,7 @@ import { useRef } from 'react';
 
 interface TooltipProps {
   content: React.ReactNode;
-  children: JSX.Element; // Important: We need a single JSX element as a child
+  children: React.JSX.Element; // Important: We need a single JSX element as a child
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({ children, content }) => {

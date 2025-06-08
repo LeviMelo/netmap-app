@@ -632,3 +632,33 @@ body {
     display: none !important;
   }
 }
+
+
+/* ===== NEW: AMBIENT ANIMATIONS FOR WELCOME SCREEN ===== */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes gentle-drift-one {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(5vw, 10vh); }
+  50% { transform: translate(-5vw, 15vh); }
+  75% { transform: translate(10vw, -5vh); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes gentle-drift-two {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-5vw, -10vh); }
+  50% { transform: translate(5vw, -15vh); }
+  75% { transform: translate(-10vw, 5vh); }
+  100% { transform: translate(0, 0); }
+}

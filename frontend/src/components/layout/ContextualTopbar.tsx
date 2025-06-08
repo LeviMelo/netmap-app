@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appState';
 import { InteractionMode } from '../../stores/appState';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useScrollOverflow } from '../../hooks/useScrollOverflow';
 
 interface ContextualTopbarProps {
   className?: string;
@@ -64,6 +65,9 @@ export const ContextualTopbar: React.FC<ContextualTopbarProps> = ({ className = 
   const secondaryTabs = secondaryTabsMap[mode] || [];
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isOverflowing = useScrollOverflow(scrollContainerRef);
+
   useEffect(() => {
     if (secondaryTabs.length > 0) {
       setActiveSecondaryTab(secondaryTabs[0].id);
@@ -115,7 +119,7 @@ export const ContextualTopbar: React.FC<ContextualTopbarProps> = ({ className = 
 
         <div className="flex-1 min-w-0 overflow-hidden">
           <div className="flex justify-center">
-          <div className="flex items-center gap-2 overflow-x-auto py-2 scrollbar-hide [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]" role="tablist" aria-label={`${mode} options`}>
+          <div ref={scrollContainerRef} className={`flex items-center gap-2 overflow-x-auto py-2 scrollbar-hide ${isOverflowing ? '[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]' : ''}`} role="tablist" aria-label={`${mode} options`}>
               {secondaryTabs.map((tab, index) => (
                 <button
                   key={tab.id}
