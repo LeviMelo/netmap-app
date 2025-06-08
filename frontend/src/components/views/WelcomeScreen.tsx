@@ -1,6 +1,150 @@
 import React from 'react';
+import { useAppStore } from '../../stores/appState';
 
 export const WelcomeScreen: React.FC = () => {
+  const { addNode, addEdge, setMode, setImportMode, setUtilityPanelVisible } = useAppStore();
+
+  const createSampleMap = () => {
+    // Create a sample concept map about "Web Development"
+    const nodes = [
+      { label: 'Web Development', color: '#f97316', position: { x: 200, y: 150 } },
+      { label: 'Frontend', color: '#0ea5e9', position: { x: 100, y: 250 } },
+      { label: 'Backend', color: '#0ea5e9', position: { x: 300, y: 250 } },
+      { label: 'Database', color: '#0ea5e9', position: { x: 400, y: 200 } },
+      { label: 'React', color: '#22c55e', position: { x: 50, y: 350 } },
+      { label: 'TypeScript', color: '#22c55e', position: { x: 150, y: 350 } },
+      { label: 'Node.js', color: '#22c55e', position: { x: 250, y: 350 } },
+      { label: 'Express', color: '#22c55e', position: { x: 350, y: 350 } },
+      { label: 'PostgreSQL', color: '#22c55e', position: { x: 450, y: 300 } },
+      { label: 'API Design', color: '#eab308', position: { x: 200, y: 50 } },
+      { label: 'uses', color: '#94a3b8', shape: 'diamond', isConnectorNode: true, position: { x: 125, y: 300 } },
+      { label: 'requires', color: '#94a3b8', shape: 'diamond', isConnectorNode: true, position: { x: 275, y: 300 } },
+    ];
+
+    const edges = [
+      { source: 'node_web_dev', target: 'node_frontend' },
+      { source: 'node_web_dev', target: 'node_backend' },
+      { source: 'node_web_dev', target: 'node_database' },
+      { source: 'node_web_dev', target: 'node_api' },
+      { source: 'node_frontend', target: 'node_connector_uses' },
+      { source: 'node_connector_uses', target: 'node_react' },
+      { source: 'node_connector_uses', target: 'node_typescript' },
+      { source: 'node_backend', target: 'node_connector_requires' },
+      { source: 'node_connector_requires', target: 'node_nodejs' },
+      { source: 'node_connector_requires', target: 'node_express' },
+      { source: 'node_database', target: 'node_postgresql' },
+    ];
+
+    // Add nodes with proper IDs
+    nodes.forEach((node, index) => {
+      const nodeId = index === 0 ? 'node_web_dev' : 
+                    index === 1 ? 'node_frontend' :
+                    index === 2 ? 'node_backend' :
+                    index === 3 ? 'node_database' :
+                    index === 4 ? 'node_react' :
+                    index === 5 ? 'node_typescript' :
+                    index === 6 ? 'node_nodejs' :
+                    index === 7 ? 'node_express' :
+                    index === 8 ? 'node_postgresql' :
+                    index === 9 ? 'node_api' :
+                    index === 10 ? 'node_connector_uses' :
+                    'node_connector_requires';
+      
+      addNode({ 
+        id: nodeId,
+        label: node.label, 
+        color: node.color, 
+        position: node.position,
+        shape: node.shape as 'ellipse' | 'rectangle' | 'diamond' | 'triangle' | undefined,
+        isConnectorNode: node.isConnectorNode 
+      });
+    });
+
+    // Add edges
+    edges.forEach((edge, index) => {
+      addEdge({ 
+        id: `edge_${index}`,
+        source: edge.source, 
+        target: edge.target 
+      });
+    });
+
+    // Switch to view mode
+    setMode('view');
+  };
+
+  const handleLoadFromFile = () => {
+    // Create a file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.csv';
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          let data;
+          
+          if (file.name.endsWith('.json')) {
+            data = JSON.parse(content);
+          } else if (file.name.endsWith('.csv')) {
+            // Basic CSV parsing for demo purposes
+            const lines = content.split('\n');
+            const headers = lines[0].split(',');
+            
+            if (headers.includes('id') && headers.includes('label')) {
+              // Parse as nodes CSV
+              data = {
+                nodes: lines.slice(1).map(line => {
+                  const values = line.split(',');
+                  return {
+                    id: values[0],
+                    label: values[1],
+                    color: values[2] || '#0ea5e9'
+                  };
+                }).filter(node => node.id && node.label),
+                edges: []
+              };
+            } else if (headers.includes('source') && headers.includes('target')) {
+              // Parse as edges CSV
+              data = {
+                nodes: [],
+                edges: lines.slice(1).map(line => {
+                  const values = line.split(',');
+                  return {
+                    source: values[0],
+                    target: values[1],
+                    label: values[2] || ''
+                  };
+                }).filter(edge => edge.source && edge.target)
+              };
+            }
+          }
+
+          if (data) {
+            // Set import mode and switch to dataIO mode
+            setImportMode('replace');
+            setMode('dataIO');
+            setUtilityPanelVisible(true);
+            
+            // Import the data
+            useAppStore.getState().validateAndImportData(data);
+          }
+        } catch (error) {
+          alert('Failed to parse file. Please check the format.');
+        }
+      };
+      
+      reader.readAsText(file);
+    };
+    
+    input.click();
+  };
+
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-8 relative overflow-hidden">
       {/* Dynamic Animated Background */}
@@ -41,7 +185,7 @@ export const WelcomeScreen: React.FC = () => {
         </p>
         <div className="mb-8">
           <button 
-            onClick={() => {/* TODO */}}
+            onClick={createSampleMap}
             className="btn-base btn-primary text-lg px-8 py-4"
           >
             <span className="relative z-10">Create New Concept Map</span>
@@ -50,7 +194,7 @@ export const WelcomeScreen: React.FC = () => {
         <div className="text-small text-text-muted">
           or{' '}
           <button 
-            onClick={() => {/* TODO */}}
+            onClick={handleLoadFromFile}
             className="text-accent-secondary hover:text-accent-secondary-hover underline"
           >
             load from file

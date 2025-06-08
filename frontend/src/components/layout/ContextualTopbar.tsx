@@ -89,17 +89,7 @@ export const ContextualTopbar: React.FC<ContextualTopbarProps> = ({ className = 
           />
         </div>
 
-        {isDesktop && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent-secondary/10 border border-accent-secondary/20">
-              <div className="w-2 h-2 rounded-full bg-accent-secondary"></div>
-              <span className="text-text-muted text-xs">Mode:</span>
-              <span className="font-bold text-accent-secondary capitalize tracking-wide text-xs">
-                {mode.replace(/([A-Z])/g, ' $1').toLowerCase()}
-              </span>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

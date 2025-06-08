@@ -16,42 +16,59 @@ import { WelcomeScreen } from './components/views/WelcomeScreen';
 import { GraphCanvas } from './components/views/GraphCanvas';
 
 const App: React.FC = () => {
-  const { settings, sidebarCollapsed, elements } = useAppStore();
+  const { settings, sidebarCollapsed, elements, utilityPanelVisible, utilityPanelWidth } = useAppStore();
   const { isDesktop } = useResponsive();
 
-  // FIXED: The responsibility of applying the theme class to the document
-  // is now here, in a top-level component, not in the state store.
+  // Apply theme to document
   useEffect(() => {
     document.documentElement.classList.toggle('dark', settings.theme === 'dark');
   }, [settings.theme]);
 
   const hasGraphData = elements.nodes.length > 0 || elements.edges.length > 0;
 
-  // FIXED: The layout is now an "overlay" style.
-  // The main content area uses padding to prevent content from being hidden
-  // under the fixed-position UI elements (Sidebar on desktop, Mobile Topbar on mobile).
-  // This eliminates the "pushing" and unwanted movement of the main viewport.
-  const mainContentPadding = isDesktop
-    ? (sidebarCollapsed ? 'pl-16' : 'pl-64')
-    : 'pt-16'; // Padding top to account for the mobile top bar
+  // Calculate sidebar width in pixels for consistent layout
+  const sidebarWidthPx = isDesktop ? (sidebarCollapsed ? 64 : 256) : 0;
 
   return (
     <div className="w-full h-screen bg-bg-primary text-text-base overflow-hidden">
-      {/* The Sidebar component now handles rendering either the desktop
-          sidebar or the mobile top bar based on the `isDesktop` hook. */}
+      {/* Sidebar - always on the far left */}
       <Sidebar />
       
-      {/* Main Content Area */}
-      <div className={`h-full flex flex-col transition-all duration-300 ${mainContentPadding}`}>
+      {/* Main Content Area - fixed positioning to prevent shifting */}
+      <div 
+        className="fixed top-0 right-0 bottom-0 flex flex-col"
+        style={{ 
+          left: isDesktop ? `${sidebarWidthPx}px` : '0',
+          paddingTop: isDesktop ? 0 : '4rem' // Mobile top padding for topbar
+        }}
+      >
         <ContextualTopbar />
         
-        <div className="flex-1 flex overflow-hidden">
-          {/* This is the primary viewport for your application's content. */}
-          <main className="flex-1 relative" role="main" aria-label="Main Viewport">
+        <div className="flex-1 relative overflow-hidden">
+          {/* Main viewport for graph canvas */}
+          <main className="absolute inset-0" role="main" aria-label="Main Viewport">
             {hasGraphData ? <GraphCanvas /> : <WelcomeScreen />}
           </main>
           
-          <UtilityPanel />
+          {/* Utility Panel - overlays main viewport */}
+          {isDesktop && utilityPanelVisible && (
+            <div 
+              className="absolute top-0 bottom-0 z-50 transition-all duration-300"
+              style={{ 
+                left: '0',
+                width: `${utilityPanelWidth}px`
+              }}
+            >
+              <UtilityPanel />
+            </div>
+          )}
+          
+          {/* Mobile utility panel at bottom */}
+          {!isDesktop && utilityPanelVisible && (
+            <div className="absolute bottom-0 left-0 right-0 z-50">
+              <UtilityPanel />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -27,26 +27,35 @@ const primaryTabs: TabItem[] = [
 ];
 
 export const Sidebar: React.FC = () => {
-  const { mode, setMode, sidebarCollapsed } = useAppStore();
+  const { mode, setMode, sidebarCollapsed, setUtilityPanelVisible } = useAppStore();
   const { isDesktop } = useResponsive();
+
+  const handleMobileTabClick = (tabId: InteractionMode) => {
+    setMode(tabId);
+    
+    // Auto-show utility panel for modes that need it
+    if (tabId === 'paint' || tabId === 'manualEdit' || tabId === 'dataIO' || tabId === 'layout' || tabId === 'analyze') {
+      setUtilityPanelVisible(true);
+    }
+  };
 
   const MobileNav = (
     <nav className="md:hidden fixed top-0 left-0 right-0 z-40 glass-level-1 border-b border-border h-16 flex items-center px-4">
       <div className="flex-shrink-0 w-10 h-10 relative">
         <img src="/src/assets/netmap_logo.png" alt="NetMap Logo" className="w-full h-full object-contain" />
       </div>
-      <div className="flex-1 mx-2 overflow-hidden">
-        <div className="flex items-center justify-center gap-1 overflow-x-auto scrollbar-hide">
+      <div className="flex-1 mx-2 min-w-0">
+        <div className="flex items-center gap-1 overflow-x-auto overflow-y-hidden scrollbar-hide pb-1" style={{ scrollbarWidth: 'none' }}>
           {primaryTabs.map((tab) => {
             const isActive = mode === tab.id;
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
-                onClick={() => setMode(tab.id)}
+                onClick={() => handleMobileTabClick(tab.id)}
                 className={[
                   'flex items-center gap-2 px-3 py-2 rounded-lg flex-shrink-0',
-                  'transition-all duration-300 border whitespace-nowrap',
+                  'transition-all duration-300 border whitespace-nowrap min-w-max',
                   isActive ? 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30' : 'text-text-muted border-transparent hover:text-accent-secondary hover:bg-accent-secondary/10'
                 ].join(' ')}
                 aria-label={tab.label}

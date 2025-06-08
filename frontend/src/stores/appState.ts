@@ -1,17 +1,16 @@
 /**
- * Main Application State Store (Zustand)
+ * Comprehensive Application State Management
  * 
- * This store manages the complete application state including:
+ * This Zustand store manages the entire application state including:
  * - Graph elements (nodes and edges)
- * - Layout metadata for different layout modes
- * - Current interaction mode and layout
- * - Snapshots/checkpoints system
- * - App settings and preferences
- * - Edge color inheritance rules and connector node logic
+ * - Layout management and snapshots
+ * - Interaction modes and UI state
+ * - Settings and persistence
+ * - Color inheritance logic for edges
  */
 
 import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
 
 // ===== TYPE DEFINITIONS =====
 
@@ -173,357 +172,458 @@ export interface AppState {
   getEdgeById: (id: string) => EdgeData | undefined
 }
 
-// ===== DEFAULT STATE =====
+// ===== HELPER FUNCTIONS =====
 
-const defaultState = {
-  elements: {
-    nodes: [],
-    edges: [],
-  },
-  layouts: {
-    preset: {},
-    physics: {},
-    concentric: {},
-    dagre: {},
-    grid: {},
-  } as Record<LayoutMode, LayoutMeta>,
-  currentLayout: 'preset' as LayoutMode,
-  mode: 'view' as InteractionMode,
-  selectedNodes: [],
-  selectedEdges: [],
-  selectedColor: '#f59e0b', // Default orange
-  propagateToEdges: true,
-  snapshots: [],
-  settings: {
-    theme: 'dark' as const,
-    inputMode: 'auto' as const,
-    useConnectorNodes: false,
-    canvasLocked: false,
-    autoSave: true,
-    gridSnapping: false,
-  },
-  sidebarCollapsed: false,
-  utilityPanelVisible: false,
-  utilityPanelWidth: 300,
-  utilityPanelHeight: 300,
-  importMode: 'replace' as const,
-  validationErrors: [],
+// Generate unique ID
+const generateId = (prefix: string = 'item'): string => {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
+
+// Apply edge color inheritance logic
+const applyEdgeColorInheritance = (sourceNodeId: string, nodes: NodeData[]): string | undefined => {
+  const sourceNode = nodes.find(n => n.id === sourceNodeId)
+  if (!sourceNode || sourceNode.isConnectorNode) {
+    return undefined // No inheritance for connector nodes
+  }
+  return sourceNode.color
+}
+
+// Default layout metadata
+const getDefaultLayoutMeta = (): LayoutMeta => ({
+  nodePositions: {},
+  lockedNodes: [],
+  edgeLengths: {},
+  modeParams: {}
+})
 
 // ===== STORE IMPLEMENTATION =====
 
 export const useAppStore = create<AppState>()(
-  devtools(
-    persist(
-      (set, get) => ({
-        ...defaultState,
+  persist(
+    (set, get) => ({
+      // ===== INITIAL STATE =====
+      elements: {
+        nodes: [],
+        edges: []
+      },
+      
+      layouts: {
+        preset: getDefaultLayoutMeta(),
+        physics: getDefaultLayoutMeta(),
+        concentric: getDefaultLayoutMeta(),
+        dagre: getDefaultLayoutMeta(),
+        grid: getDefaultLayoutMeta()
+      },
+      currentLayout: 'preset',
+      
+      mode: 'view',
+      selectedNodes: [],
+      selectedEdges: [],
+      
+      selectedColor: '#0ea5e9',
+      propagateToEdges: true,
+      
+      snapshots: [],
+      
+      settings: {
+        theme: 'dark',
+        inputMode: 'auto',
+        useConnectorNodes: false,
+        canvasLocked: false,
+        autoSave: true,
+        gridSnapping: false
+      },
+      
+      sidebarCollapsed: false,
+      utilityPanelVisible: false,
+      utilityPanelWidth: 320,
+      utilityPanelHeight: 300,
+      
+      importMode: 'replace',
+      validationErrors: [],
+
+      // ===== MODE MANAGEMENT =====
+      setMode: (mode) => set({ mode }),
+      setLayout: (layout) => set({ currentLayout: layout }),
+
+      // ===== GRAPH ELEMENT MANAGEMENT =====
+      addNode: (nodeInput) => set((state) => {
+        const id = nodeInput.id || generateId('node')
+        const newNode: NodeData = {
+          id,
+          label: nodeInput.label || `Node ${id}`,
+          color: nodeInput.color || '#0ea5e9',
+          shape: nodeInput.shape || 'ellipse',
+          tags: nodeInput.tags || [],
+          locked: nodeInput.locked || false,
+          isConnectorNode: nodeInput.isConnectorNode || false,
+          position: nodeInput.position || { x: Math.random() * 400, y: Math.random() * 400 }
+        }
         
-        // Mode Management
-        setMode: (mode) => set({ mode }),
-        setLayout: (layout) => set({ currentLayout: layout }),
-        
-        // Graph Element Management
-        addNode: (nodeData) => {
-          const id = nodeData.id || `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          const node: NodeData = {
-            id,
-            label: nodeData.label || id,
-            color: nodeData.color || '#cccccc',
-            shape: nodeData.shape || 'ellipse',
-            tags: nodeData.tags || [],
-            locked: false,
-            isConnectorNode: nodeData.isConnectorNode || false,
-            position: nodeData.position,
+        return {
+          elements: {
+            ...state.elements,
+            nodes: [...state.elements.nodes, newNode]
           }
+        }
+      }),
+
+      updateNode: (id, updates) => set((state) => {
+        const updatedNodes = state.elements.nodes.map(node =>
+          node.id === id ? { ...node, ...updates } : node
+        )
+        
+        // If color changed and node is not a connector, update outgoing edges
+        if (updates.color && !state.elements.nodes.find(n => n.id === id)?.isConnectorNode) {
+          const updatedEdges = state.elements.edges.map(edge =>
+            edge.source === id ? { ...edge, color: updates.color } : edge
+          )
           
-          set((state) => ({
+          return {
             elements: {
-              ...state.elements,
-              nodes: [...state.elements.nodes, node],
-            },
-          }))
-        },
-        
-        updateNode: (id, updates) => {
-          set((state) => ({
-            elements: {
-              ...state.elements,
-              nodes: state.elements.nodes.map((node) =>
-                node.id === id ? { ...node, ...updates } : node
-              ),
-            },
-          }))
-        },
-        
-        deleteNode: (id) => {
-          set((state) => ({
-            elements: {
-              nodes: state.elements.nodes.filter((node) => node.id !== id),
-              edges: state.elements.edges.filter((edge) => edge.source !== id && edge.target !== id),
-            },
-            selectedNodes: state.selectedNodes.filter((nodeId) => nodeId !== id),
-          }))
-        },
-        
-        addEdge: (edgeData) => {
-          const state = get()
-          const id = edgeData.id || `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          
-          // Find source node for color inheritance
-          const sourceNode = state.elements.nodes.find(n => n.id === edgeData.source)
-          let edgeColor = edgeData.color
-          
-          // Apply color inheritance rule: edges inherit source color unless source is a connector node
-          if (!edgeColor && sourceNode && !sourceNode.isConnectorNode) {
-            edgeColor = sourceNode.color
-          }
-          
-          const edge: EdgeData = {
-            id,
-            source: edgeData.source,
-            target: edgeData.target,
-            label: edgeData.label || '',
-            color: edgeColor || '#888888',
-            length: edgeData.length || 100,
-            weight: edgeData.weight || 1,
-          }
-          
-          set((state) => ({
-            elements: {
-              ...state.elements,
-              edges: [...state.elements.edges, edge],
-            },
-          }))
-        },
-        
-        updateEdge: (id, updates) => {
-          set((state) => ({
-            elements: {
-              ...state.elements,
-              edges: state.elements.edges.map((edge) =>
-                edge.id === id ? { ...edge, ...updates } : edge
-              ),
-            },
-          }))
-        },
-        
-        deleteEdge: (id) => {
-          set((state) => ({
-            elements: {
-              ...state.elements,
-              edges: state.elements.edges.filter((edge) => edge.id !== id),
-            },
-            selectedEdges: state.selectedEdges.filter((edgeId) => edgeId !== id),
-          }))
-        },
-        
-        // Selection Management
-        selectNode: (id, addToSelection = false) => {
-          set((state) => ({
-            selectedNodes: addToSelection 
-              ? [...state.selectedNodes, id]
-              : [id],
-            selectedEdges: addToSelection ? state.selectedEdges : [],
-          }))
-        },
-        
-        selectEdge: (id, addToSelection = false) => {
-          set((state) => ({
-            selectedEdges: addToSelection 
-              ? [...state.selectedEdges, id]
-              : [id],
-            selectedNodes: addToSelection ? state.selectedNodes : [],
-          }))
-        },
-        
-        clearSelection: () => {
-          set({ selectedNodes: [], selectedEdges: [] })
-        },
-        
-        // Layout Management
-        saveLayoutMeta: (layout, meta) => {
-          set((state) => ({
-            layouts: {
-              ...state.layouts,
-              [layout]: meta,
-            },
-          }))
-        },
-        
-        applyLayout: (layout) => {
-          set({ currentLayout: layout })
-        },
-        
-        lockNode: (id) => {
-          get().updateNode(id, { locked: true })
-        },
-        
-        unlockNode: (id) => {
-          get().updateNode(id, { locked: false })
-        },
-        
-        // Paint Mode Actions
-        setSelectedColor: (color) => set({ selectedColor: color }),
-        setPropagateToEdges: (propagate) => set({ propagateToEdges: propagate }),
-        
-        paintNode: (id, color) => {
-          const state = get()
-          get().updateNode(id, { color })
-          
-          // If propagateToEdges is enabled and node is not a connector, paint its outgoing edges
-          if (state.propagateToEdges) {
-            const node = state.elements.nodes.find(n => n.id === id)
-            if (node && !node.isConnectorNode) {
-              const outgoingEdges = state.elements.edges.filter(edge => edge.source === id)
-              outgoingEdges.forEach(edge => {
-                get().updateEdge(edge.id, { color })
-              })
+              nodes: updatedNodes,
+              edges: updatedEdges
             }
           }
-        },
+        }
         
-        paintEdge: (id, color) => {
-          get().updateEdge(id, { color })
+        return {
+          elements: {
+            ...state.elements,
+            nodes: updatedNodes
+          }
+        }
+      }),
+
+      deleteNode: (id) => set((state) => ({
+        elements: {
+          nodes: state.elements.nodes.filter(node => node.id !== id),
+          edges: state.elements.edges.filter(edge => 
+            edge.source !== id && edge.target !== id
+          )
         },
+        selectedNodes: state.selectedNodes.filter(nodeId => nodeId !== id)
+      })),
+
+      addEdge: (edgeInput) => set((state) => {
+        const id = edgeInput.id || generateId('edge')
         
-        // Snapshot Management
-        saveSnapshot: (name, description) => {
-          const state = get()
-          const snapshot: Snapshot = {
-            id: `snapshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name,
-            timestamp: Date.now(),
-            elements: structuredClone(state.elements),
-            layouts: structuredClone(state.layouts),
-            description,
+        // Apply color inheritance if no color specified
+        const inheritedColor = edgeInput.color || 
+          applyEdgeColorInheritance(edgeInput.source, state.elements.nodes) ||
+          '#64748b'
+        
+        const newEdge: EdgeData = {
+          id,
+          source: edgeInput.source,
+          target: edgeInput.target,
+          label: edgeInput.label || '',
+          color: inheritedColor,
+          length: edgeInput.length || 100,
+          weight: edgeInput.weight || 1
+        }
+        
+        return {
+          elements: {
+            ...state.elements,
+            edges: [...state.elements.edges, newEdge]
+          }
+        }
+      }),
+
+      updateEdge: (id, updates) => set((state) => ({
+        elements: {
+          ...state.elements,
+          edges: state.elements.edges.map(edge =>
+            edge.id === id ? { ...edge, ...updates } : edge
+          )
+        }
+      })),
+
+      deleteEdge: (id) => set((state) => ({
+        elements: {
+          ...state.elements,
+          edges: state.elements.edges.filter(edge => edge.id !== id)
+        },
+        selectedEdges: state.selectedEdges.filter(edgeId => edgeId !== id)
+      })),
+
+      // ===== SELECTION MANAGEMENT =====
+      selectNode: (id, addToSelection = false) => set((state) => ({
+        selectedNodes: addToSelection 
+          ? state.selectedNodes.includes(id)
+            ? state.selectedNodes.filter(nodeId => nodeId !== id)
+            : [...state.selectedNodes, id]
+          : [id],
+        selectedEdges: addToSelection ? state.selectedEdges : []
+      })),
+
+      selectEdge: (id, addToSelection = false) => set((state) => ({
+        selectedEdges: addToSelection
+          ? state.selectedEdges.includes(id)
+            ? state.selectedEdges.filter(edgeId => edgeId !== id)
+            : [...state.selectedEdges, id]
+          : [id],
+        selectedNodes: addToSelection ? state.selectedNodes : []
+      })),
+
+      clearSelection: () => set({
+        selectedNodes: [],
+        selectedEdges: []
+      }),
+
+      // ===== LAYOUT MANAGEMENT =====
+      saveLayoutMeta: (layout, meta) => set((state) => ({
+        layouts: {
+          ...state.layouts,
+          [layout]: meta
+        }
+      })),
+
+      applyLayout: (layout) => set((_state) => {
+        // This would trigger layout in the UI component
+        return { currentLayout: layout }
+      }),
+
+      lockNode: (id) => set((state) => ({
+        elements: {
+          ...state.elements,
+          nodes: state.elements.nodes.map(node =>
+            node.id === id ? { ...node, locked: true } : node
+          )
+        }
+      })),
+
+      unlockNode: (id) => set((state) => ({
+        elements: {
+          ...state.elements,
+          nodes: state.elements.nodes.map(node =>
+            node.id === id ? { ...node, locked: false } : node
+          )
+        }
+      })),
+
+      // ===== PAINT MODE ACTIONS =====
+      setSelectedColor: (color) => set({ selectedColor: color }),
+      setPropagateToEdges: (propagate) => set({ propagateToEdges: propagate }),
+
+      paintNode: (id, color) => set((state) => {
+        const updatedNodes = state.elements.nodes.map(node =>
+          node.id === id ? { ...node, color } : node
+        )
+        
+        // Apply to outgoing edges if propagation enabled and not connector node
+        let updatedEdges = state.elements.edges
+        if (state.propagateToEdges) {
+          const node = state.elements.nodes.find(n => n.id === id)
+          if (node && !node.isConnectorNode) {
+            updatedEdges = state.elements.edges.map(edge =>
+              edge.source === id ? { ...edge, color } : edge
+            )
+          }
+        }
+        
+        return {
+          elements: {
+            nodes: updatedNodes,
+            edges: updatedEdges
+          }
+        }
+      }),
+
+      paintEdge: (id, color) => set((state) => ({
+        elements: {
+          ...state.elements,
+          edges: state.elements.edges.map(edge =>
+            edge.id === id ? { ...edge, color } : edge
+          )
+        }
+      })),
+
+      // ===== SNAPSHOT MANAGEMENT =====
+      saveSnapshot: (name, description) => set((state) => {
+        const snapshot: Snapshot = {
+          id: generateId('snapshot'),
+          name,
+          description,
+          timestamp: Date.now(),
+          elements: {
+            nodes: [...state.elements.nodes],
+            edges: [...state.elements.edges]
+          },
+          layouts: { ...state.layouts }
+        }
+        
+        return {
+          snapshots: [...state.snapshots, snapshot]
+        }
+      }),
+
+      restoreSnapshot: (id) => set((state) => {
+        const snapshot = state.snapshots.find(s => s.id === id)
+        if (!snapshot) return state
+        
+        return {
+          elements: snapshot.elements,
+          layouts: snapshot.layouts,
+          currentLayout: 'preset'
+        }
+      }),
+
+      deleteSnapshot: (id) => set((state) => ({
+        snapshots: state.snapshots.filter(s => s.id !== id)
+      })),
+
+      renameSnapshot: (id, name) => set((state) => ({
+        snapshots: state.snapshots.map(s =>
+          s.id === id ? { ...s, name } : s
+        )
+      })),
+
+      // ===== DATA I/O ACTIONS =====
+      setImportMode: (mode) => set({ importMode: mode }),
+
+      validateAndImportData: async (data) => {
+        // Basic validation - could be enhanced
+        try {
+          if (!data || typeof data !== 'object') {
+            set({ validationErrors: ['Invalid data format'] })
+            return false
           }
           
-          set((state) => ({
-            snapshots: [...state.snapshots, snapshot],
-          }))
-        },
-        
-        restoreSnapshot: (id) => {
+          const { nodes = [], edges = [] } = data
+          
+          // Validate nodes
+          const nodeErrors: string[] = []
+          nodes.forEach((node: any, index: number) => {
+            if (!node.id || !node.label) {
+              nodeErrors.push(`Node ${index}: Missing id or label`)
+            }
+          })
+          
+          // Validate edges
+          const edgeErrors: string[] = []
+          const nodeIds = new Set(nodes.map((n: any) => n.id))
+          edges.forEach((edge: any, index: number) => {
+            if (!edge.source || !edge.target) {
+              edgeErrors.push(`Edge ${index}: Missing source or target`)
+            } else if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
+              edgeErrors.push(`Edge ${index}: References non-existent nodes`)
+            }
+          })
+          
+          const allErrors = [...nodeErrors, ...edgeErrors]
+          
+          if (allErrors.length > 0) {
+            set({ validationErrors: allErrors })
+            return false
+          }
+          
+          // Import data
           const state = get()
-          const snapshot = state.snapshots.find(s => s.id === id)
-          if (snapshot) {
+          if (state.importMode === 'replace') {
             set({
-              elements: structuredClone(snapshot.elements),
-              layouts: structuredClone(snapshot.layouts),
-              currentLayout: 'preset',
+              elements: { nodes, edges },
+              validationErrors: []
+            })
+          } else {
+            // Merge mode
+            const existingNodeIds = new Set(state.elements.nodes.map(n => n.id))
+            const existingEdgeIds = new Set(state.elements.edges.map(e => e.id))
+            
+            const newNodes = nodes.filter((n: any) => !existingNodeIds.has(n.id))
+            const newEdges = edges.filter((e: any) => !existingEdgeIds.has(e.id))
+            
+            set({
+              elements: {
+                nodes: [...state.elements.nodes, ...newNodes],
+                edges: [...state.elements.edges, ...newEdges]
+              },
+              validationErrors: []
             })
           }
-        },
+          
+          return true
+        } catch (error) {
+          set({ validationErrors: ['Failed to parse data'] })
+          return false
+        }
+      },
+
+      exportData: (format) => {
+        const state = get()
         
-        deleteSnapshot: (id) => {
-          set((state) => ({
-            snapshots: state.snapshots.filter(s => s.id !== id),
-          }))
-        },
-        
-        renameSnapshot: (id, name) => {
-          set((state) => ({
-            snapshots: state.snapshots.map(s => 
-              s.id === id ? { ...s, name } : s
-            ),
-          }))
-        },
-        
-        // Data I/O Actions
-        setImportMode: (mode) => set({ importMode: mode }),
-        
-        validateAndImportData: async (data) => {
-          // TODO: Implement comprehensive validation logic
-          try {
-            if (data.nodes && Array.isArray(data.nodes)) {
-              const state = get()
-              if (state.importMode === 'replace') {
-                set({ elements: { nodes: data.nodes, edges: data.edges || [] } })
-              } else {
-                // Merge logic - TODO: implement conflict resolution
-                set((state) => ({
-                  elements: {
-                    nodes: [...state.elements.nodes, ...data.nodes],
-                    edges: [...state.elements.edges, ...(data.edges || [])],
-                  },
-                }))
-              }
-              return true
-            }
-            return false
-          } catch (error) {
-            console.error('Import error:', error)
-            return false
+        if (format === 'json') {
+          return {
+            nodes: state.elements.nodes,
+            edges: state.elements.edges,
+            layouts: state.layouts,
+            snapshots: state.snapshots
           }
-        },
-        
-        exportData: (format) => {
-          const state = get()
-          if (format === 'json') {
-            return {
-              elements: state.elements,
-              layouts: state.layouts,
-              snapshots: state.snapshots,
-              settings: state.settings,
-            }
+        } else if (format === 'csv') {
+          // Return CSV data structure
+          return {
+            nodes: state.elements.nodes,
+            edges: state.elements.edges
           }
-          // TODO: Implement CSV export
-          return null
-        },
+        }
         
-        // Settings Management
-        updateSettings: (updates) => {
-          set((state) => ({
-            settings: { ...state.settings, ...updates },
-          }))
-        },
-        
-        // FIXED: The toggleTheme action should ONLY manage state.
-        // The responsibility for applying the class to the <html> element belongs in a
-        // React component's `useEffect` hook, not in the state store.
-        toggleTheme: () => {
-            set((state) => ({
-              settings: {
-                ...state.settings,
-                theme: state.settings.theme === 'light' ? 'dark' : 'light',
-              },
-            }));
-        },
-        
-        // UI State Management
-        toggleSidebar: () => {
-          set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }))
-        },
-        
-        setUtilityPanelVisible: (visible) => set({ utilityPanelVisible: visible }),
-        setUtilityPanelWidth: (width) => set({ utilityPanelWidth: width }),
-        setUtilityPanelHeight: (height) => set({ utilityPanelHeight: height }),
-        
-        // Utility Functions
-        reset: () => set(defaultState),
-        
-        getNodeById: (id) => {
-          const state = get()
-          return state.elements.nodes.find(node => node.id === id)
-        },
-        
-        getEdgeById: (id) => {
-          const state = get()
-          return state.elements.edges.find(edge => edge.id === id)
-        },
+        return null
+      },
+
+      // ===== SETTINGS MANAGEMENT =====
+      updateSettings: (updates) => set((state) => ({
+        settings: { ...state.settings, ...updates }
+      })),
+
+      toggleTheme: () => set((state) => ({
+        settings: {
+          ...state.settings,
+          theme: state.settings.theme === 'light' ? 'dark' : 'light'
+        }
+      })),
+
+      // ===== UI STATE MANAGEMENT =====
+      toggleSidebar: () => set((state) => ({
+        sidebarCollapsed: !state.sidebarCollapsed
+      })),
+
+      setUtilityPanelVisible: (visible) => set({ utilityPanelVisible: visible }),
+      setUtilityPanelWidth: (width) => set({ utilityPanelWidth: width }),
+      setUtilityPanelHeight: (height) => set({ utilityPanelHeight: height }),
+
+      // ===== UTILITY FUNCTIONS =====
+      reset: () => set({
+        elements: { nodes: [], edges: [] },
+        selectedNodes: [],
+        selectedEdges: [],
+        snapshots: [],
+        mode: 'view',
+        currentLayout: 'preset',
+        validationErrors: []
       }),
-      {
-        name: 'concept-map-app-state',
-        partialize: (state) => ({
-          elements: state.elements,
-          layouts: state.layouts,
-          snapshots: state.snapshots,
-          settings: state.settings,
-        }),
+
+      getNodeById: (id) => {
+        const state = get()
+        return state.elements.nodes.find(node => node.id === id)
+      },
+
+      getEdgeById: (id) => {
+        const state = get()
+        return state.elements.edges.find(edge => edge.id === id)
       }
-    ),
+    }),
     {
-      name: 'concept-map-builder',
+      name: 'concept-map-app-state',
+      partialize: (state) => ({
+        elements: state.elements,
+        layouts: state.layouts,
+        snapshots: state.snapshots,
+        settings: state.settings,
+        sidebarCollapsed: state.sidebarCollapsed,
+        utilityPanelWidth: state.utilityPanelWidth,
+        utilityPanelHeight: state.utilityPanelHeight
+      })
     }
   )
 ) 
