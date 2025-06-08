@@ -1,0 +1,4500 @@
+Project structure for '/c/Users/Galaxy/LEVI/projects/apps/netmap-app/frontend/src':
+===============================================================================
+  App.css
+  App.tsx
+  assets/netmap_logo.png
+  assets/react.svg
+  components/common/ThemeToggleButton.tsx
+  components/common/Wheel.tsx
+  components/common/WheelTab.tsx
+  components/layout/ContextualTopbar.tsx
+  components/layout/Sidebar.tsx
+  components/layout/SidebarTab.tsx
+  components/layout/UtilityPanel.tsx
+  components/panels/DataIOPanel.tsx
+  components/panels/LayoutControlsPanel.tsx
+  components/panels/ManualEditPanel.tsx
+  components/panels/PaintModePanel.tsx
+  components/ui/Button.tsx
+  components/ui/Card.tsx
+  components/ui/index.ts
+  components/ui/Input.tsx
+  components/ui/Tooltip.tsx
+  components/views/GraphCanvas.tsx
+  components/views/WelcomeScreen.tsx
+  hooks/useLongPress.ts
+  hooks/useResponsive.ts
+  hooks/useScrollOverflow.ts
+  index.css
+  main.tsx
+  stores/appState.ts
+  types/app.ts
+  types/cytoscape-extensions.d.ts
+  utils/cytoscapeInit.ts
+  vite-env.d.ts
+
+
+
+###############################################################################
+### FILE: components/panels/LayoutControlsPanel.tsx
+###############################################################################
+/**
+ * Layout Controls Panel
+ *
+ * This component provides the UI for selecting and configuring
+ * different graph layout algorithms. It dynamically displays
+ * controls based on the currently selected layout.
+ */
+import React from 'react';
+import { useAppStore } from '../../stores/appState';
+import { Card } from '../ui/Card';
+import { LayoutMode } from '../../types/app';
+
+export const LayoutControlsPanel: React.FC = () => {
+  const { 
+    currentLayout, 
+    layoutConfigs, 
+    setLayout, 
+    updateLayoutConfig 
+  } = useAppStore(state => ({
+    currentLayout: state.currentLayout,
+    layoutConfigs: state.layoutConfigs,
+    setLayout: state.setLayout,
+    updateLayoutConfig: state.updateLayoutConfig,
+  }));
+
+  const handleLayoutChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setLayout(e.target.value as LayoutMode);
+  };
+
+  const renderLayoutControls = () => {
+    switch (currentLayout) {
+      case 'cola':
+        const colaConfig = layoutConfigs.cola;
+        return (
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1 text-small">
+              <span className="text-text-muted">Node Spacing</span>
+              <input
+                type="range"
+                min="1"
+                max="200"
+                value={colaConfig.nodeSpacing}
+                onChange={(e) => updateLayoutConfig('cola', { nodeSpacing: +e.target.value })}
+                className="w-full"
+              />
+              <span className="text-right text-text-muted">{colaConfig.nodeSpacing}</span>
+            </label>
+            <label className="flex flex-col gap-1 text-small">
+              <span className="text-text-muted">Edge Length</span>
+              <input
+                type="range"
+                min="1"
+                max="500"
+                value={colaConfig.edgeLength}
+                onChange={(e) => updateLayoutConfig('cola', { edgeLength: +e.target.value })}
+                className="w-full"
+              />
+              <span className="text-right text-text-muted">{colaConfig.edgeLength}</span>
+            </label>
+            <label className="flex items-center gap-2 text-small">
+              <input
+                type="checkbox"
+                checked={colaConfig.infinite}
+                onChange={(e) => updateLayoutConfig('cola', { infinite: e.target.checked })}
+              />
+              <span className="text-text-muted">Continuous Simulation</span>
+            </label>
+          </div>
+        );
+      case 'dagre':
+        const dagreConfig = layoutConfigs.dagre;
+        return (
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1 text-small">
+              <span className="text-text-muted">Node Separation</span>
+              <input
+                type="range"
+                min="10"
+                max="200"
+                value={dagreConfig.nodeSep}
+                onChange={(e) => updateLayoutConfig('dagre', { nodeSep: +e.target.value })}
+                className="w-full"
+              />
+               <span className="text-right text-text-muted">{dagreConfig.nodeSep}</span>
+            </label>
+            <label className="flex flex-col gap-1 text-small">
+              <span className="text-text-muted">Rank Separation</span>
+              <input
+                type="range"
+                min="10"
+                max="200"
+                value={dagreConfig.rankSep}
+                onChange={(e) => updateLayoutConfig('dagre', { rankSep: +e.target.value })}
+                className="w-full"
+              />
+               <span className="text-right text-text-muted">{dagreConfig.rankSep}</span>
+            </label>
+            <label className="flex flex-col gap-1 text-small">
+              <span className="text-text-muted">Direction</span>
+              <select
+                value={dagreConfig.rankDir}
+                onChange={(e) => updateLayoutConfig('dagre', { rankDir: e.target.value as 'TB' | 'LR' })}
+                className="w-full p-2 rounded-md bg-bg-tertiary border border-border"
+              >
+                <option value="TB">Top to Bottom</option>
+                <option value="LR">Left to Right</option>
+              </select>
+            </label>
+          </div>
+        );
+      default:
+        return (
+          <p className="text-small text-text-muted italic">
+            No parameters to configure for this layout.
+          </p>
+        );
+    }
+  };
+
+  return (
+    <Card className="p-4 flex flex-col gap-4">
+      <h3 className="text-body-large font-semibold">Layout Controls</h3>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="layout-select" className="text-small font-medium text-text-muted">
+          Layout Algorithm
+        </label>
+        <select
+          id="layout-select"
+          value={currentLayout}
+          onChange={handleLayoutChange}
+          className="w-full p-2 rounded-md bg-bg-tertiary border border-border"
+        >
+          <option value="preset">Manual / Preset</option>
+          <option value="cola">Physics (Cola)</option>
+          <option value="dagre">Flowchart (Dagre)</option>
+          <option value="concentric">Concentric</option>
+          <option value="grid">Grid</option>
+        </select>
+      </div>
+
+      <hr className="border-border" />
+
+      <div className="mt-2">
+        {renderLayoutControls()}
+      </div>
+    </Card>
+  );
+}; 
+
+
+###############################################################################
+### FILE: types/app.ts
+###############################################################################
+/**
+ * Type Definitions for Netmap Application
+ *
+ * This file contains all the core data structures, type aliases,
+ * and interface definitions used throughout the application.
+ * It serves as the single source of truth for the application's data model.
+ *
+ * UPDATED:
+ * - Added all missing actions to AppActions to match the implementation in appState.ts.
+ * - Added optional `pastStates` and `futureStates` to AppState to work correctly with zundo middleware.
+ */
+
+// ===== CORE DATA STRUCTURES =====
+export type InteractionMode =
+  | 'view'
+  | 'manualEdit'
+  | 'paint'
+  | 'layout'
+  | 'dataIO'
+  | 'analyze';
+
+export type LayoutMode =
+  | 'preset'
+  | 'cola'
+  | 'dagre'
+  | 'concentric'
+  | 'grid';
+
+export interface NodeData {
+  id: string;
+  label: string;
+  color?: string;
+  shape?: 'ellipse' | 'rectangle' | 'diamond' | 'triangle';
+  tags?: string[];
+  locked?: boolean;
+  isConnectorNode?: boolean;
+  position?: { x: number; y: number };
+}
+
+export interface EdgeData {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  color?: string;
+  length?: number;
+  weight?: number;
+}
+
+// ===== LAYOUT & SETTINGS =====
+
+export interface LayoutMeta {
+  nodePositions?: Record<string, { x: number; y: number }>;
+  lockedNodes?: string[];
+  edgeLengths?: Record<string, number>;
+  modeParams?: Record<string, any>;
+}
+
+export interface AppSettings {
+  theme: 'light' | 'dark';
+  inputMode: 'auto' | 'mobile' | 'desktop';
+  useConnectorNodes: boolean;
+  canvasLocked: boolean;
+  autoSave: boolean;
+  gridSnapping: boolean;
+}
+
+export interface Snapshot {
+  id: string;
+  name: string;
+  timestamp: number;
+  elements: {
+    nodes: NodeData[];
+    edges: EdgeData[];
+  };
+  layouts: Record<string, LayoutMeta>;
+  description?: string;
+}
+
+// ===== LAYOUT CONFIGURATIONS =====
+
+export interface ColaLayoutConfig {
+  name: 'cola';
+  animate: boolean;
+  padding: number;
+  nodeSpacing: number;
+  edgeLength: number;
+  infinite: boolean;
+}
+
+export interface DagreLayoutConfig {
+  name: 'dagre';
+  nodeSep: number;
+  rankSep: number;
+  rankDir: 'TB' | 'LR' | 'BT' | 'RL';
+  padding: number;
+}
+
+export interface ConcentricLayoutConfig {
+  name: 'concentric';
+  padding: number;
+  startAngle: number;
+  sweep: number | undefined;
+  clockwise: boolean;
+  equidistant: boolean;
+  minNodeSpacing: number;
+}
+
+export interface GridLayoutConfig {
+  name: 'grid';
+  padding: number;
+  rows: number | undefined;
+  cols: number | undefined;
+}
+
+export interface LayoutConfigs {
+  cola: ColaLayoutConfig;
+  dagre: DagreLayoutConfig;
+  concentric: ConcentricLayoutConfig;
+  grid: GridLayoutConfig;
+}
+
+// ===== ZUSTAND STORE DEFINITIONS =====
+
+export interface AppState {
+  // Graph Data
+  elements: {
+    nodes: NodeData[];
+    edges: EdgeData[];
+  };
+
+  // Layout Management
+  layouts: Record<string, LayoutMeta>;
+  currentLayout: LayoutMode;
+  layoutConfigs: LayoutConfigs;
+
+  // Interaction State
+  mode: InteractionMode;
+  selectedNodes: string[];
+  selectedEdges: string[];
+
+  // Paint Mode State
+  selectedColor: string;
+  propagateToEdges: boolean;
+
+  // Snapshots
+  snapshots: Snapshot[];
+
+  // App Settings
+  settings: AppSettings;
+
+  // UI State
+  sidebarCollapsed: boolean;
+  utilityPanelVisible: boolean;
+  utilityPanelWidth: number;
+  utilityPanelHeight: number;
+
+  // Data I/O State
+  importMode: 'merge' | 'replace';
+  validationErrors: any[];
+  
+  // Temporal State (Injected by zundo)
+  pastStates: Partial<AppState>[];
+  futureStates: Partial<AppState>[];
+}
+
+export interface AppActions {
+  // Mode Management
+  setMode: (mode: InteractionMode) => void;
+  setLayout: (layout: LayoutMode) => void;
+  updateLayoutConfig: <K extends keyof LayoutConfigs>(
+    layout: K,
+    config: Partial<LayoutConfigs[K]>
+  ) => void;
+
+  // Graph Element Management
+  addNode: (node: Omit<NodeData, 'id'> & { id?: string }) => NodeData;
+  updateNode: (id: string, updates: Partial<Omit<NodeData, 'id'>>) => void;
+  deleteNode: (id: string) => void;
+  deleteNodes: (ids: string[]) => void;
+  getNodeById: (id: string) => NodeData | undefined;
+  lockNode: (id: string) => void;
+  unlockNode: (id: string) => void;
+
+  addEdge: (edge: Omit<EdgeData, 'id'> & { id?: string }) => EdgeData;
+  updateEdge: (id: string, updates: Partial<Omit<EdgeData, 'id'>>) => void;
+  deleteEdge: (id: string) => void;
+  deleteEdges: (ids: string[]) => void;
+  getEdgeById: (id: string) => EdgeData | undefined;
+
+  // Selection Management
+  selectNode: (id: string, addToSelection?: boolean) => void;
+  selectEdge: (id: string, addToSelection?: boolean) => void;
+  clearSelection: () => void;
+  
+  // Paint Mode Actions
+  setSelectedColor: (color: string) => void;
+  setPropagateToEdges: (propagate: boolean) => void;
+  paintNode: (id: string, color?: string) => void;
+  paintEdge: (id: string, color?: string) => void;
+
+  // Snapshot Management
+  saveSnapshot: (name: string, description?: string) => void;
+  restoreSnapshot: (id: string) => void;
+  deleteSnapshot: (id: string) => void;
+
+  // Data I/O Actions
+  importData: (
+    data: { nodes: NodeData[]; edges: EdgeData[] },
+    mode?: 'merge' | 'replace'
+  ) => void;
+  validateAndImportData: (data: { nodes: any[]; edges: any[] }) => void;
+  setImportMode: (mode: 'merge' | 'replace') => void;
+
+  // Settings Management
+  updateSettings: (updates: Partial<AppSettings>) => void;
+  toggleTheme: () => void;
+
+  // UI State Management
+  toggleSidebar: () => void;
+  setUtilityPanelVisible: (visible: boolean, mode?: InteractionMode) => void;
+  setUtilityPanelWidth: (width: number) => void;
+  setUtilityPanelHeight: (height: number) => void;
+
+  // Store-wide Actions
+  reset: () => void;
+
+  // Temporal (Undo/Redo) Actions - Injected by zundo
+  undo: () => void;
+  redo: () => void;
+}
+
+export type AppStore = AppState & AppActions;
+
+
+###############################################################################
+### FILE: App.css
+###############################################################################
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+
+###############################################################################
+### FILE: App.tsx
+###############################################################################
+/**
+ * Main Application Component
+ * REFACTORED: This component is now the "Layout Orchestrator".
+ * It uses the `useResponsive` hook to determine the overall layout structure
+ * and handles the placement of the main UI regions. It no longer contains
+ * business logic for views, which have been extracted.
+ */
+import React, { useEffect } from 'react';
+import { useAppStore } from './stores/appState';
+import { useResponsive } from './hooks/useResponsive';
+
+import { Sidebar } from './components/layout/Sidebar';
+import { ContextualTopbar } from './components/layout/ContextualTopbar';
+import { UtilityPanel } from './components/layout/UtilityPanel';
+import { WelcomeScreen } from './components/views/WelcomeScreen';
+import { GraphCanvas } from './components/views/GraphCanvas';
+
+const App: React.FC = () => {
+  const { settings, sidebarCollapsed, elements, utilityPanelVisible, utilityPanelWidth } = useAppStore();
+  const { isDesktop } = useResponsive();
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', settings.theme === 'dark');
+  }, [settings.theme]);
+
+  const hasGraphData = elements.nodes.length > 0 || elements.edges.length > 0;
+
+  // Calculate sidebar width in pixels for consistent layout
+  const sidebarWidthPx = isDesktop ? (sidebarCollapsed ? 64 : 256) : 0;
+
+  return (
+    <div className="w-full h-screen bg-bg-primary text-text-base overflow-hidden">
+      {/* Sidebar - always on the far left */}
+      <Sidebar />
+      
+      {/* Main Content Area - fixed positioning to prevent shifting */}
+      <div 
+        className="fixed top-0 right-0 bottom-0 flex flex-col"
+        style={{ 
+          left: isDesktop ? `${sidebarWidthPx}px` : '0',
+          paddingTop: isDesktop ? 0 : '4rem' // Mobile top padding for topbar
+        }}
+      >
+        <ContextualTopbar />
+        
+        <div className="flex-1 relative overflow-hidden">
+          {/* Main viewport for graph canvas */}
+          <main className="absolute inset-0" role="main" aria-label="Main Viewport">
+            {hasGraphData ? <GraphCanvas /> : <WelcomeScreen />}
+          </main>
+          
+          {/* Utility Panel - overlays main viewport */}
+          {isDesktop && utilityPanelVisible && (
+            <div 
+              className="absolute top-0 bottom-0 z-50 transition-all duration-300"
+              style={{ 
+                left: '0',
+                width: `${utilityPanelWidth}px`
+              }}
+            >
+              <UtilityPanel />
+            </div>
+          )}
+          
+          {/* Mobile utility panel at bottom */}
+          {!isDesktop && utilityPanelVisible && (
+            <div className="absolute bottom-0 left-0 right-0 z-50">
+              <UtilityPanel />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
+
+
+###############################################################################
+### FILE: assets/react.svg
+###############################################################################
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+
+
+###############################################################################
+### FILE: components/common/ThemeToggleButton.tsx
+###############################################################################
+/**
+ * A self-contained, reusable component for toggling the application's theme.
+ * It hooks into the app state directly, making it a portable "drop-in" component.
+ */
+import React from 'react';
+import { Sun, Moon } from 'lucide-react';
+import { useAppStore } from '../../stores/appState';
+
+export const ThemeToggleButton: React.FC = () => {
+  const { settings, toggleTheme } = useAppStore();
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all duration-300 text-accent-primary"
+      aria-label={`Switch to ${settings.theme === 'dark' ? 'light' : 'dark'} mode`}
+    >
+      {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  );
+};
+
+
+###############################################################################
+### FILE: components/common/Wheel.tsx
+###############################################################################
+import React, { useRef, useEffect } from 'react';
+import { useScrollOverflow } from '../../hooks/useScrollOverflow';
+
+interface WheelItem {
+  id: string;
+  label: string;
+}
+
+interface WheelProps {
+  items: WheelItem[];
+  activeItemId: string;
+  onItemClick: (id: string) => void;
+}
+
+export const Wheel: React.FC<WheelProps> = ({ items, activeItemId, onItemClick }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+  
+  const isOverflowing = useScrollOverflow(scrollRef);
+
+  // This effect dynamically styles tabs ONLY when overflowing.
+  useEffect(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return;
+
+    // If we are NOT overflowing, reset all styles to default and stop.
+    if (!isOverflowing) {
+      itemRefs.current.forEach(el => {
+        if (el) {
+          el.style.opacity = '1';
+          el.style.transform = 'scale(1)';
+        }
+      });
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const rootRect = scrollElement.getBoundingClientRect();
+        const rootCenter = rootRect.left + rootRect.width / 2;
+
+        entries.forEach(entry => {
+          const targetElement = entry.target as HTMLButtonElement;
+          const targetRect = entry.boundingClientRect;
+          const targetCenter = targetRect.left + targetRect.width / 2;
+          
+          const distance = Math.abs(rootCenter - targetCenter);
+          const proximity = Math.max(0, 1 - distance / (rootRect.width / 2));
+
+          const scale = 0.85 + (proximity * 0.15); // Scale from 0.85 to 1.0
+          const opacity = 0.6 + (proximity * 0.4);  // Opacity from 0.6 to 1.0
+          
+          // Direct DOM manipulation for performance.
+          targetElement.style.opacity = `${opacity}`;
+          targetElement.style.transform = `scale(${scale})`;
+        });
+      },
+      {
+        root: scrollElement,
+        threshold: Array.from({ length: 21 }, (_, i) => i * 0.05),
+      }
+    );
+
+    const refsToObserve = Array.from(itemRefs.current.values());
+    refsToObserve.forEach(ref => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => {
+      refsToObserve.forEach(ref => {
+        if (ref) observer.unobserve(ref);
+      });
+    };
+  }, [isOverflowing, items]);
+
+  // Effect to scroll the active tab to the center.
+  useEffect(() => {
+    const activeItemRef = itemRefs.current.get(activeItemId);
+    if (activeItemRef) {
+      activeItemRef.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+    }
+  }, [activeItemId]);
+
+  const containerClasses = [
+    'flex w-full items-center py-2 transition-all duration-300',
+    // If overflowing, it's a scrollable container with a mask.
+    // FIXED: Removed the layout-breaking padding.
+    isOverflowing 
+      ? 'overflow-x-auto scrollbar-hide [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]' 
+      // If not overflowing, it's a simple centered flexbox.
+      : 'justify-center gap-2'
+  ].join(' ');
+
+  return (
+    <div ref={scrollRef} className={containerClasses}>
+      {items.map((item) => {
+        const isActive = item.id === activeItemId;
+        
+        const tabClasses = [
+          'flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap',
+          'border transition-all duration-200 ease-out',
+          isActive
+            ? 'opacity-100 scale-100 bg-accent-primary/20 text-accent-primary border-accent-primary/30 shadow-md'
+            : `text-text-muted border-transparent hover:text-accent-primary ${!isOverflowing ? 'hover:bg-accent-primary/10' : ''}`
+        ].join(' ');
+
+        return (
+          // A containing div for spacing, separate from the button itself.
+          <div key={item.id} className="p-1">
+            <button
+              // DEFINITIVE FIX for the ref callback error.
+              ref={(el) => { itemRefs.current.set(item.id, el); }}
+              data-item-id={item.id}
+              onClick={() => onItemClick(item.id)}
+              className={tabClasses}
+              aria-selected={isActive}
+            >
+              {item.label}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+
+###############################################################################
+### FILE: components/common/WheelTab.tsx
+###############################################################################
+import React from 'react';
+
+interface WheelTabProps {
+  onClick: () => void;
+  isActive: boolean;
+  style: React.CSSProperties;
+  children: React.ReactNode;
+}
+
+export const WheelTab: React.FC<WheelTabProps> = ({ onClick, isActive, style, children }) => {
+  const baseClasses = `
+    flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap 
+    border transition-all duration-300 ease-out
+  `;
+  
+  const activeClasses = `
+    bg-accent-primary/20 text-accent-primary border-accent-primary/30 shadow-md
+  `;
+  
+  const inactiveClasses = `
+    text-text-muted border-transparent hover:text-accent-primary hover:bg-accent-primary/10
+  `;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
+      style={style}
+      aria-selected={isActive}
+    >
+      {children}
+    </button>
+  );
+};
+
+
+###############################################################################
+### FILE: components/layout/ContextualTopbar.tsx
+###############################################################################
+import React, { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAppStore } from '../../stores/appState';
+import { InteractionMode } from '../../stores/appState';
+import { useResponsive } from '../../hooks/useResponsive';
+import { Wheel } from '../common/Wheel'; // Import the new, reusable component
+
+interface ContextualTopbarProps {
+  className?: string;
+}
+
+const secondaryTabsMap: Record<InteractionMode, { id: string; label: string; description: string }[]> = {
+  view: [],
+  dataIO: [
+    { id: 'import', label: 'Import', description: 'Load graph data from JSON/CSV' },
+    { id: 'export', label: 'Export', description: 'Export graph in various formats' },
+    { id: 'validate', label: 'Validate', description: 'Validate and fix data issues' },
+  ],
+  manualEdit: [
+    { id: 'nodes', label: 'Nodes', description: 'Add, edit, and delete nodes' },
+    { id: 'edges', label: 'Edges', description: 'Add, edit, and delete edges' },
+    { id: 'properties', label: 'Properties', description: 'Edit node and edge properties' },
+  ],
+  paint: [
+    { id: 'colors', label: 'Colors', description: 'Apply colors to nodes and edges' },
+    { id: 'styles', label: 'Styles', description: 'Apply visual styles and themes' },
+    { id: 'presets', label: 'Presets', description: 'Save and load style presets' },
+  ],
+  layout: [
+    { id: 'manual', label: 'Manual', description: 'Manual positioning and arrangement' },
+    { id: 'physics', label: 'Physics', description: 'Force-directed layout simulation' },
+    { id: 'hierarchy', label: 'Hierarchy', description: 'Hierarchical and radial layouts' },
+    { id: 'flow', label: 'Flow', description: 'Directed flow and tree layouts' },
+    { id: 'grid', label: 'Grid', description: 'Grid and matrix arrangements' },
+    { id: 'snapshots', label: 'Snapshots', description: 'Save and restore layout snapshots' },
+  ],
+  analyze: [
+    { id: 'summary', label: 'Summary', description: 'Basic graph statistics' },
+    { id: 'components', label: 'Components', description: 'Connected components analysis' },
+    { id: 'metrics', label: 'Metrics', description: 'Centrality and importance metrics' },
+    { id: 'clusters', label: 'Clusters', description: 'Community detection and clustering' },
+  ],
+};
+
+export const ContextualTopbar: React.FC<ContextualTopbarProps> = ({ className = '' }) => {
+  const { mode, sidebarCollapsed, toggleSidebar } = useAppStore();
+  const [activeSecondaryTab, setActiveSecondaryTab] = useState<string>('');
+  const { isDesktop } = useResponsive();
+
+  const secondaryTabs = secondaryTabsMap[mode] || [];
+
+  useEffect(() => {
+    if (secondaryTabs.length > 0) {
+      setActiveSecondaryTab(secondaryTabs[0].id);
+    } else {
+      setActiveSecondaryTab('');
+    }
+  }, [mode]);
+
+  if (secondaryTabs.length === 0) {
+    if (!isDesktop) return null;
+    return (
+      <div className="glass-level-2 border-b border-border px-4 h-16 flex items-center">
+        <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-accent-primary/10 text-accent-primary" aria-label="Toggle Sidebar">
+          {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`glass-level-2 border-b border-border h-16 flex items-center relative overflow-hidden ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-r from-accent-secondary/3 to-accent-tertiary/3 opacity-50"></div>
+      
+      <div className="flex items-center w-full px-4 relative z-10 gap-4">
+        {isDesktop && (
+          <div className="flex-shrink-0">
+            <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-accent-primary/10 text-accent-primary" aria-label="Toggle Sidebar">
+              {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <Wheel
+            items={secondaryTabs}
+            activeItemId={activeSecondaryTab}
+            onItemClick={setActiveSecondaryTab}
+          />
+        </div>
+
+
+      </div>
+    </div>
+  );
+};
+
+
+###############################################################################
+### FILE: components/layout/Sidebar.tsx
+###############################################################################
+/**
+ * Primary Navigation Sidebar Component
+ * FINAL REFACTOR: This component is now a pure layout container.
+ * The complex logic for each tab has been extracted to the SidebarTab component,
+ * solving the React Hook crash and simplifying maintenance.
+ */
+import React from 'react';
+import { Home, Edit3, LayoutGrid, BarChart3, Palette } from 'lucide-react';
+import { useAppStore, InteractionMode } from '../../stores/appState';
+import { useResponsive } from '../../hooks/useResponsive';
+import { ThemeToggleButton } from '../common/ThemeToggleButton';
+import { SidebarTab } from './SidebarTab'; // Import the new component
+
+interface TabItem {
+  id: InteractionMode;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  description: string;
+}
+
+const primaryTabs: TabItem[] = [
+  { id: 'dataIO', label: 'Data I/O', icon: Home, description: 'Load and export graph data' },
+  { id: 'manualEdit', label: 'Edit', icon: Edit3, description: 'Edit nodes and edges manually' },
+  { id: 'layout', label: 'Layout', icon: LayoutGrid, description: 'Apply different layout algorithms' },
+  { id: 'analyze', label: 'Analyze', icon: BarChart3, description: 'Analyze graph metrics and structure' },
+  { id: 'paint', label: 'Paint', icon: Palette, description: 'Style nodes and edges with colors' },
+];
+
+export const Sidebar: React.FC = () => {
+  const { mode, setMode, sidebarCollapsed, setUtilityPanelVisible } = useAppStore();
+  const { isDesktop } = useResponsive();
+
+  const handleMobileTabClick = (tabId: InteractionMode) => {
+    setMode(tabId);
+    
+    // Auto-show utility panel for modes that need it
+    if (tabId === 'paint' || tabId === 'manualEdit' || tabId === 'dataIO' || tabId === 'layout' || tabId === 'analyze') {
+      setUtilityPanelVisible(true);
+    }
+  };
+
+  const MobileNav = (
+    <nav className="md:hidden fixed top-0 left-0 right-0 z-40 glass-level-1 border-b border-border h-16 flex items-center px-4">
+      <div className="flex-shrink-0 w-10 h-10 relative">
+        <img src="/src/assets/netmap_logo.png" alt="NetMap Logo" className="w-full h-full object-contain" />
+      </div>
+      <div className="flex-1 mx-2 min-w-0">
+        <div className="flex items-center gap-1 overflow-x-auto overflow-y-hidden scrollbar-hide pb-1" style={{ scrollbarWidth: 'none' }}>
+          {primaryTabs.map((tab) => {
+            const isActive = mode === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleMobileTabClick(tab.id)}
+                className={[
+                  'flex items-center gap-2 px-3 py-2 rounded-lg flex-shrink-0',
+                  'transition-all duration-300 border whitespace-nowrap min-w-max',
+                  isActive ? 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30' : 'text-text-muted border-transparent hover:text-accent-secondary hover:bg-accent-secondary/10'
+                ].join(' ')}
+                aria-label={tab.label}
+              >
+                <Icon size={18} />
+                <span className="text-sm font-semibold">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex-shrink-0"><ThemeToggleButton /></div>
+    </nav>
+  );
+
+  const DesktopSidebar = (
+    <nav className={`glass-level-1 fixed left-0 top-0 h-full z-50 flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+      <div className="flex items-center p-4 border-b border-border relative overflow-hidden h-16">
+        <div className="absolute inset-0 bg-gradient-to-r from-accent-primary/8 to-accent-tertiary/8"></div>
+        <div className="flex items-center gap-3 relative z-10 flex-1">
+          <div className="w-10 h-10 relative flex-shrink-0">
+            <img src="/src/assets/netmap_logo.png" alt="NetMap Logo" className="w-full h-full object-contain transition-transform hover:scale-105" />
+          </div>
+          {!sidebarCollapsed && (
+            <div className="min-w-0 flex-1">
+              <h1 className="text-h3 font-bold bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-tertiary bg-clip-text text-transparent truncate">NetMap</h1>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 p-3 overflow-y-auto custom-scrollbar">
+        <div className="space-y-1">
+          {primaryTabs.map((tab, index) => (
+            <React.Fragment key={tab.id}>
+              <SidebarTab tab={tab} />
+              {index < primaryTabs.length - 1 && <div className="mx-3 my-2 h-px bg-border/50"></div>}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+      <div className="mt-auto p-2 border-t border-border flex items-center justify-center">
+        <ThemeToggleButton />
+      </div>
+    </nav>
+  );
+
+  return isDesktop ? DesktopSidebar : MobileNav;
+};
+
+
+###############################################################################
+### FILE: components/layout/SidebarTab.tsx
+###############################################################################
+import React from 'react';
+import { useAppStore, InteractionMode } from '../../stores/appState';
+import { Tooltip } from '../ui/Tooltip';
+
+interface TabItem {
+  id: InteractionMode;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  description: string;
+}
+
+interface SidebarTabProps {
+  tab: TabItem;
+}
+
+export const SidebarTab: React.FC<SidebarTabProps> = ({ tab }) => {
+  const { mode, setMode, sidebarCollapsed, setUtilityPanelVisible } = useAppStore();
+
+  const isActive = mode === tab.id;
+  const Icon = tab.icon;
+
+  const buttonClasses = [
+    'w-full flex items-center rounded-xl', 'transition-all duration-300',
+    'text-left min-h-[44px] relative group',
+    sidebarCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3 gap-3',
+    isActive 
+      ? 'bg-gradient-to-r from-accent-secondary/20 to-accent-secondary/20 text-accent-secondary border border-accent-secondary/30 shadow-md' 
+      : 'text-text-muted border border-transparent hover:text-accent-secondary hover:bg-gradient-to-r hover:from-accent-secondary/10 hover:to-accent-tertiary/10'
+  ].join(' ');
+
+  const handleTabClick = () => {
+    setMode(tab.id);
+    
+    // Auto-show utility panel for modes that need it
+    if (tab.id === 'paint' || tab.id === 'manualEdit' || tab.id === 'dataIO' || tab.id === 'layout' || tab.id === 'analyze') {
+      setUtilityPanelVisible(true);
+    }
+  };
+
+  // The logic is now much simpler. The Tooltip handles its own hover state.
+  return (
+    <Tooltip content={tab.description}>
+      <button onClick={handleTabClick} className={buttonClasses} aria-label={tab.label}>
+        <Icon size={20} className={`transition-all duration-300 flex-shrink-0 relative z-10 ${isActive ? 'text-accent-secondary' : 'text-text-muted group-hover:text-accent-secondary'}`} />
+        {!sidebarCollapsed && (
+          <div className="flex-1 relative z-10 min-w-0">
+            <div className={`text-sm font-semibold truncate transition-all duration-300 ${isActive ? 'text-accent-secondary' : 'group-hover:text-accent-secondary'}`}>{tab.label}</div>
+          </div>
+        )}
+      </button>
+    </Tooltip>
+  );
+};
+
+
+###############################################################################
+### FILE: components/layout/UtilityPanel.tsx
+###############################################################################
+/**
+ * Utility Panel Component
+ *
+ * DEFINITIVE FIX: The persistent "Property does not exist on type 'unknown'" errors
+ * are resolved by changing the state selection pattern. Instead of using a single
+ * selector that returns an object, we now use multiple, individual selectors for each
+ * piece of state. This is a more robust and type-safe pattern for Zustand that
+ * ensures correct type inference.
+ */
+import React, { useState } from 'react';
+import { X, GripVertical } from 'lucide-react';
+import { useAppStore } from '../../stores/appState';
+import { useResponsive } from '../../hooks/useResponsive';
+import { PaintModePanel } from '../panels/PaintModePanel';
+import { ManualEditPanel } from '../panels/ManualEditPanel';
+import { DataIOPanel } from '../panels/DataIOPanel';
+import { LayoutControlsPanel } from '../panels/LayoutControlsPanel';
+
+const AnalyzePanel: React.FC = () => {
+  // This single-property selector is already correct
+  const elements = useAppStore((state) => state.elements);
+  return (
+    <div className="p-4">
+      <h3 className="text-body-large font-semibold mb-4">Graph Analysis</h3>
+      <div className="space-y-3">
+        <div className="p-3 rounded-lg bg-bg-secondary/50 border border-border">
+          <h4 className="text-small font-medium mb-2">Graph Statistics</h4>
+          <div className="space-y-1 text-xs text-text-muted">
+            <div>Nodes: {elements.nodes.length}</div>
+            <div>Edges: {elements.edges.length}</div>
+            <div>Density: {elements.nodes.length > 1 ? ((elements.edges.length * 2) / (elements.nodes.length * (elements.nodes.length - 1))).toFixed(3) : '0'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const UtilityPanel: React.FC = () => {
+  // DEFINITIVE FIX: Select each piece of state individually.
+  // This is type-safe and avoids the inference issues of object selectors.
+  const mode = useAppStore((state) => state.mode);
+  const utilityPanelVisible = useAppStore((state) => state.utilityPanelVisible);
+  const selectedNodes = useAppStore((state) => state.selectedNodes);
+  const selectedEdges = useAppStore((state) => state.selectedEdges);
+  const utilityPanelWidth = useAppStore((state) => state.utilityPanelWidth);
+  
+  // Actions are fetched separately and correctly via getState
+  const { setUtilityPanelVisible, setUtilityPanelWidth } = useAppStore.getState();
+  
+  const { isDesktop } = useResponsive();
+  const [isResizing, setIsResizing] = useState(false);
+
+  if (!utilityPanelVisible) {
+    return null;
+  }
+
+  if (mode === 'view' && selectedNodes.length === 0 && selectedEdges.length === 0) {
+    return null;
+  }
+
+  const renderModeContent = () => {
+    switch (mode) {
+      case 'paint':
+        return <PaintModePanel />;
+      case 'manualEdit':
+        return <ManualEditPanel />;
+      case 'dataIO':
+        return <DataIOPanel />;
+      case 'layout':
+        return <LayoutControlsPanel />;
+      case 'analyze':
+        return <AnalyzePanel />;
+      case 'view':
+      default:
+        if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+          return (
+            <div className="p-4">
+              <h3 className="text-body-large font-semibold mb-4">Selection Info</h3>
+              <div className="space-y-3">
+                {selectedNodes.length > 0 && (
+                  <div className="p-3 rounded-lg bg-accent-primary/5 border border-accent-primary/20">
+                    <p className="text-small font-medium text-accent-primary">
+                      {selectedNodes.length} node{selectedNodes.length > 1 ? 's' : ''} selected
+                    </p>
+                  </div>
+                )}
+                {selectedEdges.length > 0 && (
+                  <div className="p-3 rounded-lg bg-accent-secondary/5 border border-accent-secondary/20">
+                    <p className="text-small font-medium text-accent-secondary">
+                      {selectedEdges.length} edge{selectedEdges.length > 1 ? 's' : ''} selected
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+        return null;
+    }
+  };
+
+  const content = renderModeContent();
+  if (!content) return null;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startWidth = utilityPanelWidth;
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - startX;
+      const newWidth = Math.max(280, Math.min(600, startWidth + deltaX));
+      setUtilityPanelWidth(newWidth);
+    };
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  if (isDesktop) {
+    return (
+      <div className="h-full relative">
+        <div className="h-full w-full bg-bg-secondary/20 backdrop-blur-xl border-r border-border/30 shadow-2xl overflow-y-auto custom-scrollbar">
+          <div className="p-4 border-b border-border/20 bg-bg-secondary/30 sticky top-0 z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-text-base">
+                  {mode === 'dataIO' && 'Data Import/Export'}
+                  {mode === 'manualEdit' && 'Manual Editing Tools'}
+                  {mode === 'paint' && 'Paint & Styling'}
+                  {mode === 'layout' && 'Layout Controls'}
+                  {mode === 'analyze' && 'Graph Analysis'}
+                  {mode === 'view' && 'Selection Details'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setUtilityPanelVisible(false)}
+                className="p-1.5 rounded-lg hover:bg-accent-primary/10 text-accent-primary transition-all"
+                aria-label="Close panel"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1">{content}</div>
+        </div>
+        <div
+          className="absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize group"
+          onMouseDown={handleMouseDown}
+        >
+          <div className={`w-full h-full bg-accent-primary/0 group-hover:bg-accent-primary/20 transition-all ${isResizing ? 'bg-accent-primary/40' : ''}`}>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <GripVertical size={12} className="text-accent-primary/60" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } else {
+    return (
+      <div className="bg-bg-secondary/20 backdrop-blur-xl border-t border-border/30 shadow-2xl max-h-[60vh] overflow-y-auto custom-scrollbar animate-slide-in-bottom">
+        <div className="sticky top-0 p-3 border-b border-border/20 bg-bg-secondary/30 z-10">
+          <div className="w-full h-5 flex justify-center items-center">
+            <div className="w-12 h-1 bg-text-muted/40 rounded-full"></div>
+            <button
+              onClick={() => setUtilityPanelVisible(false)}
+              className="absolute top-1.5 right-1.5 p-1.5 rounded-lg hover:bg-accent-primary/10 text-accent-primary transition-all"
+              aria-label="Close panel"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="mt-1">
+            <h3 className="text-sm font-semibold text-text-base">
+              {mode === 'dataIO' && 'Data Import/Export'}
+              {mode === 'manualEdit' && 'Manual Editing Tools'}
+              {mode === 'paint' && 'Paint & Styling'}
+              {mode === 'layout' && 'Layout Controls'}
+              {mode === 'analyze' && 'Graph Analysis'}
+              {mode === 'view' && 'Selection Details'}
+            </h3>
+          </div>
+        </div>
+        {content}
+      </div>
+    );
+  }
+};
+
+
+###############################################################################
+### FILE: components/panels/DataIOPanel.tsx
+###############################################################################
+import React, { useState, useRef } from 'react';
+import { AlertTriangle, CheckCircle, Download } from 'lucide-react';
+import { useAppStore } from '../../stores/appState';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+
+interface ValidationError {
+  type: 'schema' | 'duplicate_id' | 'missing_reference' | 'conflict';
+  message: string;
+  nodeId?: string;
+  edgeId?: string;
+  suggestions?: string[];
+  action?: 'overwrite' | 'skip' | 'rename';
+  customValue?: string;
+}
+
+interface ParsedData {
+  nodes: any[];
+  edges: any[];
+  errors: ValidationError[];
+}
+
+export const DataIOPanel: React.FC = () => {
+  const { 
+    importMode, 
+    setImportMode, 
+    elements,
+    addNode,
+    addEdge,
+    getNodeById,
+    reset
+  } = useAppStore();
+
+  const [textInput, setTextInput] = useState('');
+  const [parsedData, setParsedData] = useState<ParsedData | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationComplete, setValidationComplete] = useState(false);
+  const [conflicts, setConflicts] = useState<Record<string, ValidationError>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sample JSON with comprehensive example
+  const sampleJSON = {
+    nodes: [
+      { id: 'ai', label: 'Artificial Intelligence', color: '#0ea5e9' },
+      { id: 'ml', label: 'Machine Learning', color: '#22c55e' },
+      { id: 'dl', label: 'Deep Learning', color: '#f97316' },
+      { id: 'nn', label: 'Neural Networks', color: '#eab308' },
+      { id: 'data', label: 'Big Data', color: '#8b5cf6' },
+      { id: 'python', label: 'Python', color: '#ef4444' },
+      { id: 'algo', label: 'Algorithms', color: '#06b6d4' }
+    ],
+    edges: [
+      { source: 'ai', target: 'ml', label: 'includes' },
+      { source: 'ml', target: 'dl', label: 'subset of' },
+      { source: 'dl', target: 'nn', label: 'uses' },
+      { source: 'ml', target: 'data', label: 'processes' },
+      { source: 'python', target: 'ml', label: 'implements' },
+      { source: 'ml', target: 'algo', label: 'applies' }
+    ]
+  };
+
+  // Placeholder text for the input area
+  const placeholderText = `// Paste your JSON data here or try the sample data
+{
+  "nodes": [
+    { "id": "node1", "label": "First Node", "color": "#0ea5e9" },
+    { "id": "node2", "label": "Second Node", "color": "#22c55e" }
+  ],
+  "edges": [
+    { "source": "node1", "target": "node2", "label": "connects to" }
+  ]
+}
+
+/* Or use CSV format:
+   For nodes: id,label,color
+   For edges: source,target,label */`;
+
+  const loadSampleData = () => {
+    setTextInput(JSON.stringify(sampleJSON, null, 2));
+  };
+
+  const parseCSV = (content: string): { nodes: any[], edges: any[] } => {
+    const lines = content.trim().split('\n');
+    if (lines.length < 2) return { nodes: [], edges: [] };
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    // Detect if it's nodes or edges CSV
+    if (headers.includes('id') && headers.includes('label')) {
+      // Parse as nodes CSV
+      const nodes = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const node: any = {};
+        headers.forEach((header, index) => {
+          if (values[index]) {
+            node[header] = values[index];
+          }
+        });
+        return node;
+      }).filter(node => node.id && node.label);
+      
+      return { nodes, edges: [] };
+    } else if (headers.includes('source') && headers.includes('target')) {
+      // Parse as edges CSV
+      const edges = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const edge: any = {};
+        headers.forEach((header, index) => {
+          if (values[index]) {
+            edge[header] = values[index];
+          }
+        });
+        return edge;
+      }).filter(edge => edge.source && edge.target);
+      
+      return { nodes: [], edges };
+    }
+    
+    return { nodes: [], edges: [] };
+  };
+
+  const validateData = (data: any): ParsedData => {
+    const errors: ValidationError[] = [];
+    let nodes = data.nodes || [];
+    let edges = data.edges || [];
+
+    // Schema validation
+    if (!Array.isArray(nodes) && !Array.isArray(edges)) {
+      errors.push({
+        type: 'schema',
+        message: 'Data must contain either "nodes" or "edges" array'
+      });
+      return { nodes: [], edges: [], errors };
+    }
+
+    // Validate nodes
+    nodes = nodes.filter((node: any) => {
+      if (!node.id || !node.label) {
+        errors.push({
+          type: 'schema',
+          message: `Node missing required fields: ${!node.id ? 'id' : ''} ${!node.label ? 'label' : ''}`,
+          nodeId: node.id || 'unknown'
+        });
+        return false;
+      }
+      return true;
+    });
+
+    // Check for duplicate node IDs in import data
+    const nodeIds = new Set();
+    nodes = nodes.filter((node: any) => {
+      if (nodeIds.has(node.id)) {
+        errors.push({
+          type: 'duplicate_id',
+          message: `Duplicate node ID in import data: "${node.id}"`,
+          nodeId: node.id
+        });
+        return false;
+      }
+      nodeIds.add(node.id);
+      return true;
+    });
+
+    // Check for conflicts with existing data (if merging)
+    if (importMode === 'merge') {
+      nodes.forEach((node: any) => {
+        const existing = getNodeById(node.id);
+        if (existing) {
+          errors.push({
+            type: 'conflict',
+            message: `Node ID "${node.id}" already exists`,
+            nodeId: node.id,
+            suggestions: ['overwrite', 'skip', 'rename'],
+            action: 'skip'
+          });
+        }
+      });
+    }
+
+    // Validate edges
+    edges = edges.filter((edge: any) => {
+      if (!edge.source || !edge.target) {
+        errors.push({
+          type: 'schema',
+          message: `Edge missing required fields: ${!edge.source ? 'source' : ''} ${!edge.target ? 'target' : ''}`,
+          edgeId: edge.id || 'unknown'
+        });
+        return false;
+      }
+      return true;
+    });
+
+    // Check edge references
+    const allNodeIds = new Set([
+      ...elements.nodes.map(n => n.id),
+      ...nodes.map((n: any) => n.id)
+    ]);
+
+    edges.forEach((edge: any) => {
+      if (!allNodeIds.has(edge.source)) {
+        const suggestions = Array.from(allNodeIds)
+          .filter(id => id.toLowerCase().includes(edge.source.toLowerCase()) || 
+                       edge.source.toLowerCase().includes(id.toLowerCase()))
+          .slice(0, 3);
+        
+        errors.push({
+          type: 'missing_reference',
+          message: `Edge references missing source node: "${edge.source}"`,
+          edgeId: edge.id || `${edge.source}-${edge.target}`,
+          suggestions
+        });
+      }
+      
+      if (!allNodeIds.has(edge.target)) {
+        const suggestions = Array.from(allNodeIds)
+          .filter(id => id.toLowerCase().includes(edge.target.toLowerCase()) || 
+                       edge.target.toLowerCase().includes(id.toLowerCase()))
+          .slice(0, 3);
+        
+        errors.push({
+          type: 'missing_reference',
+          message: `Edge references missing target node: "${edge.target}"`,
+          edgeId: edge.id || `${edge.source}-${edge.target}`,
+          suggestions
+        });
+      }
+    });
+
+    return { nodes, edges, errors };
+  };
+
+  const handleValidate = async () => {
+    if (!textInput.trim()) return;
+
+    setIsValidating(true);
+    try {
+      let data;
+      
+      // Try to parse as JSON first
+      try {
+        data = JSON.parse(textInput);
+      } catch {
+        // Try as CSV
+        const csvData = parseCSV(textInput);
+        if (csvData.nodes.length === 0 && csvData.edges.length === 0) {
+          throw new Error('Invalid format: not valid JSON or CSV');
+        }
+        data = csvData;
+      }
+
+      const validated = validateData(data);
+      setParsedData(validated);
+      setValidationComplete(true);
+
+      // Initialize conflicts for resolution
+      const conflictMap: Record<string, ValidationError> = {};
+      validated.errors.forEach((error, index) => {
+        if (error.type === 'conflict' || error.type === 'missing_reference') {
+          conflictMap[`error_${index}`] = error;
+        }
+      });
+      setConflicts(conflictMap);
+
+    } catch (error) {
+      setParsedData({
+        nodes: [],
+        edges: [],
+        errors: [{
+          type: 'schema',
+          message: error instanceof Error ? error.message : 'Failed to parse data'
+        }]
+      });
+      setValidationComplete(true);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleConflictResolution = (errorKey: string, resolution: string, customValue?: string) => {
+    setConflicts(prev => ({
+      ...prev,
+      [errorKey]: {
+        ...prev[errorKey],
+        action: resolution as any,
+        customValue
+      }
+    }));
+  };
+
+  const canImport = parsedData && 
+    parsedData.errors.filter(e => e.type === 'schema' || 
+      (e.type === 'conflict' && !conflicts[`error_${parsedData.errors.indexOf(e)}`]?.action) ||
+      (e.type === 'missing_reference' && !conflicts[`error_${parsedData.errors.indexOf(e)}`]?.action)
+    ).length === 0;
+
+  const handleImport = () => {
+    if (!parsedData || !canImport) return;
+
+    try {
+      if (importMode === 'replace') {
+        reset();
+      }
+
+      // Import nodes
+      parsedData.nodes.forEach(node => {
+        const conflictKey = `error_${parsedData.errors.findIndex(e => e.nodeId === node.id)}`;
+        const conflict = conflicts[conflictKey];
+        
+        if (conflict?.action === 'skip') return;
+        
+        if (conflict?.action === 'rename') {
+          node.id = conflict.customValue || `${node.id}_copy`;
+        }
+
+        addNode({
+          id: node.id,
+          label: node.label,
+          color: node.color || '#0ea5e9',
+          shape: node.shape || 'ellipse',
+          tags: node.tags || [],
+          isConnectorNode: node.isConnectorNode || false
+        });
+      });
+
+      // Import edges
+      parsedData.edges.forEach(edge => {
+        const edgeId = edge.id || `${edge.source}-${edge.target}`;
+        addEdge({
+          id: edgeId,
+          source: edge.source,
+          target: edge.target,
+          label: edge.label || '',
+          color: edge.color
+        });
+      });
+
+      // Reset state
+      setTextInput('');
+      setParsedData(null);
+      setValidationComplete(false);
+      setConflicts({});
+
+    } catch (error) {
+      console.error('Import failed:', error);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      setTextInput(content);
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    event.target.value = '';
+  };
+
+  const exportData = (format: 'json' | 'csv-nodes' | 'csv-edges') => {
+    let content = '';
+    let filename = '';
+
+    switch (format) {
+      case 'json':
+        content = JSON.stringify({ 
+          nodes: elements.nodes, 
+          edges: elements.edges 
+        }, null, 2);
+        filename = 'concept-map.json';
+        break;
+      
+      case 'csv-nodes':
+        const nodeHeaders = ['id', 'label', 'color', 'shape', 'tags', 'isConnectorNode'];
+        const nodeRows = elements.nodes.map(node => [
+          node.id,
+          node.label,
+          node.color || '',
+          node.shape || '',
+          (node.tags || []).join(';'),
+          node.isConnectorNode || false
+        ]);
+        content = [nodeHeaders, ...nodeRows].map(row => row.join(',')).join('\n');
+        filename = 'concept-map-nodes.csv';
+        break;
+      
+      case 'csv-edges':
+        const edgeHeaders = ['source', 'target', 'label', 'color'];
+        const edgeRows = elements.edges.map(edge => [
+          edge.source,
+          edge.target,
+          edge.label || '',
+          edge.color || ''
+        ]);
+        content = [edgeHeaders, ...edgeRows].map(row => row.join(',')).join('\n');
+        filename = 'concept-map-edges.csv';
+        break;
+    }
+
+    // Create download
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Import Mode Toggle - Lightswitch Style */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h4 className="text-sm font-medium text-text-base">Import Mode</h4>
+          <p className="text-xs text-text-muted">
+            {importMode === 'merge' 
+              ? 'Add new data to existing graph' 
+              : 'Replace entire graph with new data'}
+          </p>
+        </div>
+        <div className="relative">
+          <div className="flex rounded-lg border border-border bg-bg-secondary/50 p-1">
+            <button
+              onClick={() => setImportMode('merge')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                importMode === 'merge'
+                  ? 'bg-accent-primary text-white shadow-sm'
+                  : 'text-text-muted hover:text-text-base'
+              }`}
+            >
+              Merge
+            </button>
+            <button
+              onClick={() => setImportMode('replace')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                importMode === 'replace'
+                  ? 'bg-accent-primary text-white shadow-sm'
+                  : 'text-text-muted hover:text-text-base'
+              }`}
+            >
+              Replace
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Data Input */}
+      <div className="border border-border/30 rounded-lg bg-bg-secondary/30 overflow-hidden">
+        <div className="p-4 border-b border-border/20">
+          <div className="flex justify-between items-center">
+            <h4 className="text-sm font-medium text-text-base">Data Input</h4>
+            <div className="flex gap-2">
+              <button
+                onClick={loadSampleData}
+                className="px-3 py-1.5 text-xs font-medium text-accent-primary hover:text-accent-primary-hover border border-accent-primary/30 rounded-md hover:bg-accent-primary/10 transition-all"
+              >
+                Sample Data
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-1.5 text-xs font-medium text-accent-secondary hover:text-accent-secondary-hover border border-accent-secondary/30 rounded-md hover:bg-accent-secondary/10 transition-all"
+              >
+                Upload File
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <textarea
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            placeholder={placeholderText}
+            className="w-full h-48 p-3 border border-border/50 rounded-lg bg-bg-tertiary/50 font-mono text-sm resize-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary/50 transition-all backdrop-blur-sm"
+          />
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.csv"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          
+          <div className="flex justify-between items-center mt-3">
+            <p className="text-xs text-text-muted">
+              Supports JSON with nodes/edges arrays or CSV format
+            </p>
+            <button
+              onClick={handleValidate}
+              disabled={!textInput.trim() || isValidating}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                !textInput.trim() || isValidating
+                  ? 'bg-border/50 text-text-muted cursor-not-allowed'
+                  : 'bg-accent-primary text-white hover:bg-accent-primary-hover shadow-sm'
+              }`}
+            >
+              {isValidating ? 'Validating...' : 'Import Data'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Validation Results */}
+      {validationComplete && parsedData && (
+        <Card variant="elevated">
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              {parsedData.errors.length === 0 ? (
+                <CheckCircle className="text-accent-secondary" size={18} />
+              ) : (
+                <AlertTriangle className="text-accent-tertiary" size={18} />
+              )}
+              <h4 className="text-body font-medium">
+                Validation Results
+              </h4>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 rounded-lg bg-accent-primary/5">
+                <p className="text-sm font-medium text-accent-primary">
+                  {parsedData.nodes.length} Nodes
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-accent-secondary/5">
+                <p className="text-sm font-medium text-accent-secondary">
+                  {parsedData.edges.length} Edges
+                </p>
+              </div>
+            </div>
+
+            {/* Errors and Conflicts */}
+            {parsedData.errors.length > 0 && (
+              <div className="space-y-3">
+                <h5 className="text-sm font-medium">Issues to Resolve:</h5>
+                {parsedData.errors.map((error, index) => (
+                  <div key={index} className="p-3 rounded-lg bg-accent-tertiary/5 border border-accent-tertiary/20">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={16} className="text-accent-tertiary mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm">{error.message}</p>
+                        
+                        {/* Conflict Resolution */}
+                        {error.type === 'conflict' && error.suggestions && (
+                          <div className="mt-2 flex gap-2">
+                            {error.suggestions.map(action => (
+                              <Button
+                                key={action}
+                                variant={conflicts[`error_${index}`]?.action === action ? 'primary' : 'ghost'}
+                                size="sm"
+                                onClick={() => handleConflictResolution(`error_${index}`, action)}
+                              >
+                                {action}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Missing Reference Suggestions */}
+                        {error.type === 'missing_reference' && error.suggestions && error.suggestions.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-text-muted mb-1">Did you mean:</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {error.suggestions.map(suggestion => (
+                                <Button
+                                  key={suggestion}
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleConflictResolution(`error_${index}`, 'fix', suggestion)}
+                                >
+                                  {suggestion}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Import Button */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <Button
+                variant="primary"
+                onClick={handleImport}
+                disabled={!canImport}
+                className="w-full"
+              >
+                {importMode === 'merge' ? 'Merge Data' : 'Replace Graph'}
+              </Button>
+              {!canImport && (
+                <p className="text-xs text-accent-tertiary mt-2">
+                  Please resolve all issues before importing
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Export */}
+      <Card>
+        <div className="p-4">
+          <h4 className="text-body font-medium mb-3">Export Data</h4>
+          <div className="grid grid-cols-1 gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => exportData('json')}
+              icon={Download}
+              disabled={elements.nodes.length === 0}
+            >
+              Export as JSON
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => exportData('csv-nodes')}
+              icon={Download}
+              disabled={elements.nodes.length === 0}
+            >
+              Export Nodes as CSV
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => exportData('csv-edges')}
+              icon={Download}
+              disabled={elements.edges.length === 0}
+            >
+              Export Edges as CSV
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}; 
+
+
+###############################################################################
+### FILE: components/panels/ManualEditPanel.tsx
+###############################################################################
+import React, { useState } from 'react';
+import { useAppStore } from '../../stores/appState';
+import { Plus, Edit3, Trash2, Lock, Unlock, ChevronRight } from 'lucide-react';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+
+export const ManualEditPanel: React.FC = () => {
+  const { 
+    addNode, 
+    deleteNode, 
+    deleteEdge, 
+    selectedNodes, 
+    selectedEdges, 
+    getNodeById,
+    getEdgeById,
+    updateNode,
+    updateEdge,
+    lockNode,
+    unlockNode,
+    clearSelection
+  } = useAppStore();
+
+  const [isAddingNode, setIsAddingNode] = useState(false);
+  const [newNodeLabel, setNewNodeLabel] = useState('');
+  const [newNodeColor, setNewNodeColor] = useState('#0ea5e9');
+  
+  const selectedNode = selectedNodes.length === 1 ? getNodeById(selectedNodes[0]) : null;
+  const selectedEdge = selectedEdges.length === 1 ? getEdgeById(selectedEdges[0]) : null;
+
+  const handleAddNode = () => {
+    if (!newNodeLabel.trim()) return;
+    
+    addNode({
+      label: newNodeLabel,
+      color: newNodeColor,
+      position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 }
+    });
+    
+    setNewNodeLabel('');
+    setIsAddingNode(false);
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedNodes.length > 0) {
+      const confirmMessage = `Delete ${selectedNodes.length} node${selectedNodes.length > 1 ? 's' : ''}? This will also remove connected edges.`;
+      if (confirm(confirmMessage)) {
+        selectedNodes.forEach(nodeId => deleteNode(nodeId));
+        clearSelection();
+      }
+    }
+    
+    if (selectedEdges.length > 0) {
+      const confirmMessage = `Delete ${selectedEdges.length} edge${selectedEdges.length > 1 ? 's' : ''}?`;
+      if (confirm(confirmMessage)) {
+        selectedEdges.forEach(edgeId => deleteEdge(edgeId));
+        clearSelection();
+      }
+    }
+  };
+
+  const handleToggleNodeLock = () => {
+    if (!selectedNode) return;
+    
+    if (selectedNode.locked) {
+      unlockNode(selectedNode.id);
+    } else {
+      lockNode(selectedNode.id);
+    }
+  };
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Edit3 size={18} className="text-accent-primary" />
+        <h3 className="text-h3 font-semibold">Manual Edit</h3>
+      </div>
+
+      {/* Add Node Section */}
+      <div className="space-y-3">
+        <h4 className="text-small font-medium text-text-muted">Add New Node</h4>
+        
+        {!isAddingNode ? (
+          <Button
+            onClick={() => setIsAddingNode(true)}
+            icon={Plus}
+            variant="secondary"
+            className="w-full"
+          >
+            Add Node
+          </Button>
+        ) : (
+          <div className="space-y-3 p-3 rounded-lg bg-bg-secondary/50 border border-border">
+            <Input
+              label="Node Label"
+              value={newNodeLabel}
+              onChange={(e) => setNewNodeLabel(e.target.value)}
+              placeholder="Enter node label..."
+              onKeyDown={(e) => e.key === 'Enter' && handleAddNode()}
+            />
+            
+            <div className="space-y-2">
+              <label className="text-small font-medium text-text-muted">Color</label>
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-lg border-2 border-border"
+                  style={{ backgroundColor: newNodeColor }}
+                />
+                <input
+                  type="color"
+                  value={newNodeColor}
+                  onChange={(e) => setNewNodeColor(e.target.value)}
+                  className="flex-1 h-10 rounded-lg border border-border cursor-pointer"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                onClick={handleAddNode}
+                disabled={!newNodeLabel.trim()}
+                variant="primary"
+                size="sm"
+                className="flex-1"
+              >
+                Create
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsAddingNode(false);
+                  setNewNodeLabel('');
+                }}
+                variant="ghost"
+                size="sm"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Selection Actions */}
+      {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
+        <div className="space-y-3">
+          <h4 className="text-small font-medium text-text-muted">Selection Actions</h4>
+          
+          <div className="space-y-2">
+            {selectedNodes.length > 0 && (
+              <div className="p-3 rounded-lg bg-accent-primary/5 border border-accent-primary/20">
+                <p className="text-small font-medium text-accent-primary">
+                  {selectedNodes.length} node{selectedNodes.length > 1 ? 's' : ''} selected
+                </p>
+                {selectedNode && (
+                  <p className="text-xs text-text-muted mt-1">
+                    "{selectedNode.label}" {selectedNode.locked ? '(locked)' : ''}
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {selectedEdges.length > 0 && (
+              <div className="p-3 rounded-lg bg-accent-secondary/5 border border-accent-secondary/20">
+                <p className="text-small font-medium text-accent-secondary">
+                  {selectedEdges.length} edge{selectedEdges.length > 1 ? 's' : ''} selected
+                </p>
+                {selectedEdge && (
+                  <p className="text-xs text-text-muted mt-1">
+                    {selectedEdge.label || 'No label'}
+                  </p>
+                )}
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              {selectedNode && (
+                <Button
+                  onClick={handleToggleNodeLock}
+                  icon={selectedNode.locked ? Unlock : Lock}
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1"
+                >
+                  {selectedNode.locked ? 'Unlock' : 'Lock'}
+                </Button>
+              )}
+              
+              <Button
+                onClick={handleDeleteSelected}
+                icon={Trash2}
+                variant="ghost"
+                size="sm"
+                className="flex-1 text-danger hover:bg-danger/10"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Selected Node */}
+      {selectedNode && (
+        <div className="space-y-3">
+          <h4 className="text-small font-medium text-text-muted">Edit Node</h4>
+          
+          <div className="space-y-3 p-3 rounded-lg bg-bg-secondary/50 border border-border">
+            <Input
+              label="Label"
+              value={selectedNode.label}
+              onChange={(e) => updateNode(selectedNode.id, { label: e.target.value })}
+            />
+            
+            <div className="space-y-2">
+              <label className="text-small font-medium text-text-muted">Color</label>
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-lg border-2 border-border"
+                  style={{ backgroundColor: selectedNode.color || '#0ea5e9' }}
+                />
+                <input
+                  type="color"
+                  value={selectedNode.color || '#0ea5e9'}
+                  onChange={(e) => updateNode(selectedNode.id, { color: e.target.value })}
+                  className="flex-1 h-10 rounded-lg border border-border cursor-pointer"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-small font-medium text-text-muted">Shape</label>
+              <select
+                value={selectedNode.shape || 'ellipse'}
+                onChange={(e) => updateNode(selectedNode.id, { shape: e.target.value as any })}
+                className="w-full p-2 rounded-lg border border-border bg-bg-secondary text-text-base"
+              >
+                <option value="ellipse">Ellipse</option>
+                <option value="rectangle">Rectangle</option>
+                <option value="diamond">Diamond</option>
+                <option value="triangle">Triangle</option>
+              </select>
+            </div>
+            
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedNode.isConnectorNode || false}
+                onChange={(e) => updateNode(selectedNode.id, { isConnectorNode: e.target.checked })}
+                className="w-4 h-4 text-accent-primary bg-bg-secondary border-border rounded focus:ring-accent-primary focus:ring-2"
+              />
+              <div className="flex-1">
+                <span className="text-small font-medium">Connector Node</span>
+                <p className="text-xs text-text-muted">
+                  Connector nodes don't pass their color to outgoing edges
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Selected Edge */}
+      {selectedEdge && (
+        <div className="space-y-3">
+          <h4 className="text-small font-medium text-text-muted">Edit Edge</h4>
+          
+          <div className="space-y-3 p-3 rounded-lg bg-bg-secondary/50 border border-border">
+            <Input
+              label="Label"
+              value={selectedEdge.label || ''}
+              onChange={(e) => updateEdge(selectedEdge.id, { label: e.target.value })}
+              placeholder="Optional edge label..."
+            />
+            
+            <div className="space-y-2">
+              <label className="text-small font-medium text-text-muted">Color</label>
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-lg border-2 border-border"
+                  style={{ backgroundColor: selectedEdge.color || '#64748b' }}
+                />
+                <input
+                  type="color"
+                  value={selectedEdge.color || '#64748b'}
+                  onChange={(e) => updateEdge(selectedEdge.id, { color: e.target.value })}
+                  className="flex-1 h-10 rounded-lg border border-border cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="p-3 rounded-lg bg-accent-primary/5 border border-accent-primary/20">
+        <h4 className="text-small font-medium text-accent-primary mb-2">How to Edit</h4>
+        <div className="space-y-1 text-xs text-text-muted">
+          <div className="flex items-center gap-2">
+            <ChevronRight size={12} />
+            <span>Drag nodes to reposition them</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ChevronRight size={12} />
+            <span>Double-click a node to rename it quickly</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ChevronRight size={12} />
+            <span>Click a node to see the edge handle, then drag to create edges</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ChevronRight size={12} />
+            <span>Right-click elements for quick delete options</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}; 
+
+
+###############################################################################
+### FILE: components/panels/PaintModePanel.tsx
+###############################################################################
+import React from 'react';
+import { useAppStore } from '../../stores/appState';
+import { Palette, ChevronRight } from 'lucide-react';
+
+const PRESET_COLORS = [
+  '#f97316', // Orange
+  '#0ea5e9', // Blue
+  '#22c55e', // Green
+  '#eab308', // Yellow
+  '#ef4444', // Red
+  '#a855f7', // Purple
+  '#06b6d4', // Cyan
+  '#84cc16', // Lime
+  '#f59e0b', // Amber
+  '#ec4899', // Pink
+  '#64748b', // Slate
+  '#374151', // Gray
+];
+
+export const PaintModePanel: React.FC = () => {
+  const { 
+    selectedColor, 
+    propagateToEdges, 
+    setSelectedColor, 
+    setPropagateToEdges,
+    selectedNodes,
+    selectedEdges,
+    paintNode,
+    paintEdge
+  } = useAppStore();
+
+  const handleColorSelect = (color: string) => {
+    setSelectedColor(color);
+    
+    // Apply to selected elements immediately
+    selectedNodes.forEach(nodeId => paintNode(nodeId, color));
+    selectedEdges.forEach(edgeId => paintEdge(edgeId, color));
+  };
+
+  const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const color = e.target.value;
+    setSelectedColor(color);
+    
+    // Apply to selected elements immediately
+    selectedNodes.forEach(nodeId => paintNode(nodeId, color));
+    selectedEdges.forEach(edgeId => paintEdge(edgeId, color));
+  };
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Palette size={18} className="text-accent-primary" />
+        <h3 className="text-h3 font-semibold">Paint Mode</h3>
+      </div>
+
+      {/* Current Color */}
+      <div className="space-y-2">
+        <label className="text-small font-medium text-text-muted">Current Color</label>
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-12 h-12 rounded-lg border-2 border-border shadow-inner"
+            style={{ backgroundColor: selectedColor }}
+          />
+          <div className="flex-1">
+            <input
+              type="color"
+              value={selectedColor}
+              onChange={handleCustomColorChange}
+              className="w-full h-10 rounded-lg border border-border cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Preset Colors */}
+      <div className="space-y-3">
+        <label className="text-small font-medium text-text-muted">Preset Colors</label>
+        <div className="grid grid-cols-4 gap-2">
+          {PRESET_COLORS.map((color) => (
+            <button
+              key={color}
+              onClick={() => handleColorSelect(color)}
+              className={`
+                w-12 h-12 rounded-lg border-2 transition-all duration-200
+                hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-accent-primary
+                ${selectedColor === color 
+                  ? 'border-accent-primary shadow-lg ring-2 ring-accent-primary/30' 
+                  : 'border-border hover:border-accent-primary/50'
+                }
+              `}
+              style={{ backgroundColor: color }}
+              aria-label={`Select color ${color}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Propagation Options */}
+      <div className="space-y-3">
+        <label className="text-small font-medium text-text-muted">Paint Options</label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 p-3 rounded-lg bg-bg-secondary/50 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={propagateToEdges}
+              onChange={(e) => setPropagateToEdges(e.target.checked)}
+              className="w-4 h-4 text-accent-primary bg-bg-secondary border-border rounded focus:ring-accent-primary focus:ring-2"
+            />
+            <div className="flex-1">
+              <span className="text-small font-medium">Propagate to Edges</span>
+              <p className="text-xs text-text-muted mt-1">
+                When painting a node, also color its outgoing edges (except from connector nodes)
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Usage Instructions */}
+      <div className="p-3 rounded-lg bg-accent-primary/5 border border-accent-primary/20">
+        <h4 className="text-small font-medium text-accent-primary mb-2">How to Paint</h4>
+        <div className="space-y-1 text-xs text-text-muted">
+          <div className="flex items-center gap-2">
+            <ChevronRight size={12} />
+            <span>Click any node or edge to apply the selected color</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ChevronRight size={12} />
+            <span>Select multiple elements first, then pick a color</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ChevronRight size={12} />
+            <span>Drag across nodes to paint multiple in sequence</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Selection Info */}
+      {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
+        <div className="p-3 rounded-lg bg-accent-secondary/5 border border-accent-secondary/20">
+          <p className="text-small font-medium text-accent-secondary">
+            {selectedNodes.length > 0 && `${selectedNodes.length} node${selectedNodes.length > 1 ? 's' : ''} selected`}
+            {selectedNodes.length > 0 && selectedEdges.length > 0 && ', '}
+            {selectedEdges.length > 0 && `${selectedEdges.length} edge${selectedEdges.length > 1 ? 's' : ''} selected`}
+          </p>
+          <p className="text-xs text-text-muted mt-1">
+            Changing color will apply to all selected elements
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}; 
+
+
+###############################################################################
+### FILE: components/ui/Button.tsx
+###############################################################################
+/**
+ * Button Component
+ * 
+ * A reusable button component that implements the design system with
+ * primary, secondary, and ghost variants. Supports icons, loading states,
+ * and accessibility features with proper touch targets.
+ */
+
+import React from 'react'
+import { LucideIcon } from 'lucide-react'
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'ghost'
+  size?: 'sm' | 'md' | 'lg'
+  icon?: LucideIcon
+  iconPosition?: 'left' | 'right'
+  loading?: boolean
+  children: React.ReactNode
+}
+
+export const Button: React.FC<ButtonProps> = ({
+  variant = 'primary',
+  size = 'md',
+  icon: Icon,
+  iconPosition = 'left',
+  loading = false,
+  children,
+  className = '',
+  disabled,
+  ...props
+}) => {
+  const baseClasses = 'btn-base transition-standard'
+  
+  const variantClasses = {
+    primary: 'btn-primary',
+    secondary: 'btn-secondary',
+    ghost: 'btn-ghost',
+  }
+  
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-xs min-h-[36px]',
+    md: 'px-4 py-2 text-sm min-h-[44px]',
+    lg: 'px-6 py-3 text-base min-h-[48px]',
+  }
+  
+  const isDisabled = disabled || loading
+  const disabledClasses = isDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+  
+  const combinedClassName = [
+    baseClasses,
+    variantClasses[variant],
+    sizeClasses[size],
+    disabledClasses,
+    className,
+  ].filter(Boolean).join(' ')
+  
+  const renderIcon = () => {
+    if (loading) {
+      return (
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+      )
+    }
+    
+    if (Icon) {
+      return <Icon size={16} />
+    }
+    
+    return null
+  }
+  
+  return (
+    <button
+      className={combinedClassName}
+      disabled={isDisabled}
+      {...props}
+    >
+      {iconPosition === 'left' && renderIcon()}
+      {children}
+      {iconPosition === 'right' && renderIcon()}
+    </button>
+  )
+} 
+
+
+###############################################################################
+### FILE: components/ui/Card.tsx
+###############################################################################
+/**
+ * Card Component
+ * 
+ * A reusable card component implementing the glassmorphism design system.
+ * Provides base and elevated variants with proper shadows and backdrop blur.
+ */
+
+import React from 'react'
+
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: 'base' | 'elevated'
+  children: React.ReactNode
+}
+
+export const Card: React.FC<CardProps> = ({
+  variant = 'base',
+  children,
+  className = '',
+  ...props
+}) => {
+  const variantClasses = {
+    base: 'card-base',
+    elevated: 'card-elevated',
+  }
+  
+  const combinedClassName = [
+    variantClasses[variant],
+    className,
+  ].filter(Boolean).join(' ')
+  
+  return (
+    <div className={combinedClassName} {...props}>
+      {children}
+    </div>
+  )
+} 
+
+
+###############################################################################
+### FILE: components/ui/Input.tsx
+###############################################################################
+/**
+ * Input Component
+ * 
+ * A reusable input component that follows the design system with
+ * proper focus states, placeholder styling, and accessibility features.
+ */
+
+import React from 'react'
+
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string
+  error?: string
+  hint?: string
+}
+
+export const Input: React.FC<InputProps> = ({
+  label,
+  error,
+  hint,
+  className = '',
+  id,
+  ...props
+}) => {
+  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
+  
+  const inputClasses = [
+    'input-base',
+    error ? 'border-danger focus:outline-danger' : '',
+    className,
+  ].filter(Boolean).join(' ')
+  
+  return (
+    <div className="w-full">
+      {label && (
+        <label 
+          htmlFor={inputId}
+          className="block text-small font-medium text-text-base mb-1"
+        >
+          {label}
+        </label>
+      )}
+      
+      <input
+        id={inputId}
+        className={inputClasses}
+        {...props}
+      />
+      
+      {error && (
+        <p className="mt-1 text-small text-danger">
+          {error}
+        </p>
+      )}
+      
+      {hint && !error && (
+        <p className="mt-1 text-small text-text-muted">
+          {hint}
+        </p>
+      )}
+    </div>
+  )
+} 
+
+
+###############################################################################
+### FILE: components/ui/Tooltip.tsx
+###############################################################################
+import React, { useState, cloneElement } from 'react';
+import {
+  useFloating,
+  autoUpdate,
+  offset,
+  flip,
+  shift,
+  useHover,
+  useFocus,
+  useDismiss,
+  useRole,
+  useInteractions,
+  FloatingPortal,
+  arrow,
+} from '@floating-ui/react';
+import { useRef } from 'react';
+
+interface TooltipProps {
+  content: React.ReactNode;
+  children: React.JSX.Element; // Important: We need a single JSX element as a child
+}
+
+export const Tooltip: React.FC<TooltipProps> = ({ children, content }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const arrowRef = useRef(null);
+
+  // Floating UI's core hook for positioning
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    placement: 'top',
+    // Make sure the tooltip stays on the screen
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(10), // Move it 10px away from the button
+      flip({ fallbackAxisSideDirection: 'start' }), // Flip to the bottom if there's no space on top
+      shift(), // Ensure it doesn't get cut off at the edges
+      arrow({ element: arrowRef }), // Connect the arrow
+    ],
+  });
+
+  // Hooks to control visibility based on user interaction
+  const hover = useHover(context, { move: false, delay: { open: 500, close: 100 } });
+  const focus = useFocus(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context, { role: 'tooltip' });
+
+  // Merge all the interaction hooks into props
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    hover,
+    focus,
+    dismiss,
+    role,
+  ]);
+
+  return (
+    <>
+      {/* We clone the child to attach the necessary ref and event handlers */}
+      {cloneElement(children, getReferenceProps({ ref: refs.setReference, ...children.props }))}
+      
+      {/* The Portal teleports the tooltip's JSX to the `tooltip-root` div in index.html */}
+      <FloatingPortal id="tooltip-root">
+        {isOpen && (
+          <div
+            className="pointer-events-none z-[999]" // High z-index to be on top of everything
+            ref={refs.setFloating}
+            style={floatingStyles}
+            {...getFloatingProps()}
+          >
+            {/* NEW STYLING: Opaque, glassmorphic, with a more prominent pointer */}
+            <div 
+              className="
+                px-3 py-2 rounded-lg shadow-xl
+                text-sm font-medium text-slate-200
+                bg-slate-800/90 dark:bg-slate-900/90
+                backdrop-blur-md border border-white/10
+              "
+            >
+              {content}
+              {/* The Arrow/Tail, positioned by Floating UI */}
+              <div
+                ref={arrowRef}
+                className="absolute h-2 w-2 rotate-45 bg-slate-800 dark:bg-slate-900"
+                style={{
+                  bottom: -4,
+                  left: context.middlewareData.arrow?.x,
+                  right: '',
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </FloatingPortal>
+    </>
+  );
+};
+
+
+###############################################################################
+### FILE: components/ui/index.ts
+###############################################################################
+/**
+ * UI Components Index
+ * 
+ * Centralized exports for all reusable UI components.
+ * This allows for clean imports like: import { Button, Card, Input } from '@/components/ui'
+ */
+
+export { Button } from './Button'
+export { Card } from './Card'
+export { Input } from './Input'
+
+export type { ButtonProps } from './Button'
+export type { CardProps } from './Card'
+export type { InputProps } from './Input' 
+
+
+###############################################################################
+### FILE: components/views/GraphCanvas.tsx
+###############################################################################
+/**
+ * DEFINITIVE FIX:
+ * - The final error "Property 'preset' does not exist on type 'LayoutConfigs'" is
+ *   resolved in the `handleReset` function.
+ * - A conditional check is added to ensure we only try to access `layoutConfigs`
+ *   when the current layout is not 'preset'.
+ * - For the 'preset' layout, the reset action is now correctly defined as fitting
+ *   the graph to the view, which is a sensible default for a manual layout.
+ */
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Undo, Redo, ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
+import { useAppStore } from '../../stores/appState';
+import { initCytoscape, CytoscapeInstance } from '../../utils/cytoscapeInit';
+import { NodeSingular } from 'cytoscape';
+
+export const GraphCanvas: React.FC = () => {
+  const cyRef = useRef<CytoscapeInstance | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const lastTap = useRef<{ time: number; target: any }>({ time: 0, target: null });
+  const rightClickDragData = useRef<{ sourceNodeId?: string; ghostNodeId?: string; ghostEdgeId?: string; }>({});
+
+  const elements = useAppStore((state) => state.elements);
+  const mode = useAppStore((state) => state.mode);
+  const settings = useAppStore((state) => state.settings);
+  const currentLayout = useAppStore((state) => state.currentLayout);
+  const layoutConfigs = useAppStore((state) => state.layoutConfigs);
+  const undo = useAppStore((state) => state.undo);
+  const redo = useAppStore((state) => state.redo);
+  const pastStates = useAppStore((state) => state.pastStates);
+  const futureStates = useAppStore((state) => state.futureStates);
+
+  const {
+    selectNode,
+    selectEdge,
+    updateNode,
+    addNode,
+    addEdge,
+    paintNode,
+    paintEdge,
+    clearSelection,
+  } = useAppStore.getState();
+
+  const setupEventListeners = useCallback((cy: cytoscape.Core) => {
+    cy.removeListener('tap mousedown mouseup dragover cxttap cxtdrag cxtdragover cxtdragout cxtend dragfree');
+
+    let isPainting = false;
+    let lastPaintedTarget: cytoscape.Singular | null = null;
+
+    cy.on('mousedown', 'node, edge', () => { if (mode === 'paint') isPainting = true; });
+    cy.on('mouseup', () => { if (mode === 'paint') { isPainting = false; lastPaintedTarget = null; } });
+    
+    cy.on('dragover', 'node, edge', (e) => {
+      if (isPainting && e.target !== lastPaintedTarget) {
+        const target = e.target;
+        if (target.isNode()) paintNode(target.id());
+        if (target.isEdge()) paintEdge(target.id());
+        lastPaintedTarget = target;
+      }
+    });
+
+    cy.on('tap', (e) => {
+      const target = e.target;
+      const currentTime = Date.now();
+      const isDoubleTap = currentTime - lastTap.current.time < 300 && target === lastTap.current.target;
+      lastTap.current = { time: currentTime, target: target };
+
+      switch (mode) {
+        case 'view':
+        case 'layout':
+          if (target === cy) clearSelection();
+          else if (target.isNode()) selectNode(target.id(), e.originalEvent.metaKey || e.originalEvent.ctrlKey);
+          else if (target.isEdge()) selectEdge(target.id(), e.originalEvent.metaKey || e.originalEvent.ctrlKey);
+          break;
+        case 'manualEdit': {
+          if (target === cy) { clearSelection(); return; }
+
+          if (isDoubleTap && target.isNode()) {
+            const newLabel = prompt('Enter new node label:', target.data('label') || '');
+            if (newLabel !== null) updateNode(target.id(), { label: newLabel });
+          } else {
+             if (target.isNode()) selectNode(target.id(), e.originalEvent.metaKey || e.originalEvent.ctrlKey);
+             else if (target.isEdge()) selectEdge(target.id(), e.originalEvent.metaKey || e.originalEvent.ctrlKey);
+          }
+          break;
+        }
+        case 'paint':
+          if (target.isNode()) paintNode(target.id());
+          if (target.isEdge()) paintEdge(target.id());
+          break;
+      }
+    });
+
+    cy.on('cxttap', 'node', (e) => {
+        e.preventDefault();
+    });
+
+    cy.on('cxtdrag', 'node', (e) => {
+        if (mode !== 'manualEdit') return;
+        const sourceNode = e.target;
+        if (!rightClickDragData.current.ghostNodeId) {
+            rightClickDragData.current.sourceNodeId = sourceNode.id();
+            const ghost = cy.add({ data: { id: 'ghost-node' }, position: e.position, classes: 'ghost-element' });
+            rightClickDragData.current.ghostNodeId = ghost.id();
+            const ghostEdge = cy.add({ data: { source: sourceNode.id(), target: ghost.id(), id: 'ghost-edge' }, classes: 'ghost-element' });
+            rightClickDragData.current.ghostEdgeId = ghostEdge.id();
+        } else if (rightClickDragData.current.ghostNodeId) {
+            cy.getElementById(rightClickDragData.current.ghostNodeId).position(e.position);
+        }
+    });
+    
+    cy.on('cxtdragout', 'node', () => cy.remove('.ghost-element'));
+    
+    cy.on('cxtend', (e) => {
+        cy.remove('.ghost-element');
+        if (mode !== 'manualEdit' || !rightClickDragData.current.sourceNodeId) return;
+
+        const { sourceNodeId } = rightClickDragData.current;
+        const target = e.target;
+        
+        if (target.isNode() && target.id() !== sourceNodeId) {
+            addEdge({ source: sourceNodeId, target: target.id() });
+        } else if (target === cy) {
+            const newNode = addNode({ label: 'New Node', position: e.position });
+            if(newNode) addEdge({ source: sourceNodeId, target: newNode.id });
+        }
+        rightClickDragData.current = {};
+    });
+
+    cy.on('dragfree', 'node', (e) => {
+      if (mode === 'manualEdit' || mode === 'layout' || currentLayout === 'preset') {
+        updateNode(e.target.id(), { position: e.target.position() });
+      }
+    });
+  }, [mode, addEdge, addNode, updateNode, selectNode, selectEdge, clearSelection, paintNode, paintEdge, currentLayout]);
+
+  useEffect(() => {
+    if (!containerRef.current || cyRef.current) return;
+    const cyInstance = initCytoscape({
+      container: containerRef.current,
+      elements,
+      mode,
+      theme: settings.theme,
+    });
+    cyRef.current = cyInstance;
+    setIsInitialized(true);
+    return () => {
+        if (cyRef.current) {
+            cyRef.current.destroy();
+            cyRef.current = null;
+        }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized && cyRef.current) {
+      setupEventListeners(cyRef.current.cy);
+    }
+  }, [isInitialized, mode, setupEventListeners]);
+
+  useEffect(() => {
+    if (isInitialized && cyRef.current) {
+      if (currentLayout === 'preset') {
+        cyRef.current.cy.nodes().lock();
+        cyRef.current.cy.nodes().forEach((node: NodeSingular) => {
+            const modelNode = elements.nodes.find((n) => n.id === node.id());
+            if (modelNode?.position) {
+              node.position(modelNode.position);
+            }
+        });
+        cyRef.current.cy.nodes().unlock();
+        cyRef.current.cy.fit(undefined, 50);
+      } else {
+        // This is safe because 'preset' is handled above
+        cyRef.current.applyLayout(layoutConfigs[currentLayout]);
+      }
+    }
+  }, [isInitialized, currentLayout, layoutConfigs, elements.nodes]);
+
+  useEffect(() => { if (isInitialized && cyRef.current) cyRef.current.updateElements(elements); }, [isInitialized, elements]);
+  useEffect(() => { if (isInitialized && cyRef.current) cyRef.current.updateTheme(settings.theme); }, [isInitialized, settings.theme]);
+  useEffect(() => { if (isInitialized && cyRef.current) cyRef.current.updateMode(mode); }, [isInitialized, mode]);
+
+  const handleZoom = (factor: number) => cyRef.current?.cy.zoom(cyRef.current.cy.zoom() * factor);
+  const handleFit = () => cyRef.current?.cy.fit(undefined, 50);
+
+  // DEFINITIVE FIX FOR THE LAST ERROR
+  const handleReset = () => {
+    if (!cyRef.current) return;
+
+    // Check if the current layout is algorithmic before trying to access layoutConfigs
+    if (currentLayout !== 'preset') {
+      // This is now type-safe. The key will be 'cola', 'dagre', etc.
+      cyRef.current.applyLayout(layoutConfigs[currentLayout]);
+    } else {
+      // For 'preset' layout, a sensible reset action is to fit the view.
+      cyRef.current.cy.fit(undefined, 50);
+    }
+  };
+
+  return (
+    <div className="w-full h-full relative overflow-hidden bg-bg-primary">
+      <div ref={containerRef} className="absolute inset-0" />
+      <div className="absolute top-4 left-4 flex gap-2 z-10">
+        <button
+          onClick={undo}
+          disabled={pastStates.length === 0}
+          className="p-2 rounded-lg glass-level-3 hover:bg-accent-primary/10 text-accent-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Undo"
+        ><Undo size={18} /></button>
+        <button
+          onClick={redo}
+          disabled={futureStates.length === 0}
+          className="p-2 rounded-lg glass-level-3 hover:bg-accent-primary/10 text-accent-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Redo"
+        ><Redo size={18} /></button>
+      </div>
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
+        <button onClick={() => handleZoom(1.2)} className="p-2 rounded-lg glass-level-3 hover:bg-accent-primary/10 text-accent-primary transition-all" aria-label="Zoom In"><ZoomIn size={18} /></button>
+        <button onClick={() => handleZoom(0.8)} className="p-2 rounded-lg glass-level-3 hover:bg-accent-primary/10 text-accent-primary transition-all" aria-label="Zoom Out"><ZoomOut size={18} /></button>
+        <button onClick={handleFit} className="p-2 rounded-lg glass-level-3 hover:bg-accent-primary/10 text-accent-primary transition-all" aria-label="Fit to Screen"><Maximize2 size={18} /></button>
+        <button onClick={handleReset} className="p-2 rounded-lg glass-level-3 hover:bg-accent-primary/10 text-accent-primary transition-all" aria-label="Reset Layout"><RotateCcw size={18} /></button>
+      </div>
+      <div className="absolute top-4 right-4 px-3 py-2 rounded-lg glass-level-3 text-small z-10 pointer-events-none">
+        <span className="text-text-muted">Mode: </span>
+        <span className="text-accent-primary font-medium capitalize">
+          {mode.replace(/([A-Z])/g, ' $1').toLowerCase()}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+
+###############################################################################
+### FILE: components/views/WelcomeScreen.tsx
+###############################################################################
+import React from 'react';
+import { useAppStore } from '../../stores/appState';
+
+export const WelcomeScreen: React.FC = () => {
+  const { addNode, addEdge, setMode, setImportMode, setUtilityPanelVisible } = useAppStore();
+
+  const createSampleMap = () => {
+    // Create a sample concept map about "Web Development"
+    const nodes = [
+      { label: 'Web Development', color: '#f97316', position: { x: 200, y: 150 } },
+      { label: 'Frontend', color: '#0ea5e9', position: { x: 100, y: 250 } },
+      { label: 'Backend', color: '#0ea5e9', position: { x: 300, y: 250 } },
+      { label: 'Database', color: '#0ea5e9', position: { x: 400, y: 200 } },
+      { label: 'React', color: '#22c55e', position: { x: 50, y: 350 } },
+      { label: 'TypeScript', color: '#22c55e', position: { x: 150, y: 350 } },
+      { label: 'Node.js', color: '#22c55e', position: { x: 250, y: 350 } },
+      { label: 'Express', color: '#22c55e', position: { x: 350, y: 350 } },
+      { label: 'PostgreSQL', color: '#22c55e', position: { x: 450, y: 300 } },
+      { label: 'API Design', color: '#eab308', position: { x: 200, y: 50 } },
+      { label: 'uses', color: '#94a3b8', shape: 'diamond', isConnectorNode: true, position: { x: 125, y: 300 } },
+      { label: 'requires', color: '#94a3b8', shape: 'diamond', isConnectorNode: true, position: { x: 275, y: 300 } },
+    ];
+
+    const edges = [
+      { source: 'node_web_dev', target: 'node_frontend' },
+      { source: 'node_web_dev', target: 'node_backend' },
+      { source: 'node_web_dev', target: 'node_database' },
+      { source: 'node_web_dev', target: 'node_api' },
+      { source: 'node_frontend', target: 'node_connector_uses' },
+      { source: 'node_connector_uses', target: 'node_react' },
+      { source: 'node_connector_uses', target: 'node_typescript' },
+      { source: 'node_backend', target: 'node_connector_requires' },
+      { source: 'node_connector_requires', target: 'node_nodejs' },
+      { source: 'node_connector_requires', target: 'node_express' },
+      { source: 'node_database', target: 'node_postgresql' },
+    ];
+
+    // Add nodes with proper IDs
+    nodes.forEach((node, index) => {
+      const nodeId = index === 0 ? 'node_web_dev' : 
+                    index === 1 ? 'node_frontend' :
+                    index === 2 ? 'node_backend' :
+                    index === 3 ? 'node_database' :
+                    index === 4 ? 'node_react' :
+                    index === 5 ? 'node_typescript' :
+                    index === 6 ? 'node_nodejs' :
+                    index === 7 ? 'node_express' :
+                    index === 8 ? 'node_postgresql' :
+                    index === 9 ? 'node_api' :
+                    index === 10 ? 'node_connector_uses' :
+                    'node_connector_requires';
+      
+      addNode({ 
+        id: nodeId,
+        label: node.label, 
+        color: node.color, 
+        position: node.position,
+        shape: node.shape as 'ellipse' | 'rectangle' | 'diamond' | 'triangle' | undefined,
+        isConnectorNode: node.isConnectorNode 
+      });
+    });
+
+    // Add edges
+    edges.forEach((edge, index) => {
+      addEdge({ 
+        id: `edge_${index}`,
+        source: edge.source, 
+        target: edge.target 
+      });
+    });
+
+    // Switch to view mode
+    setMode('view');
+  };
+
+  const handleLoadFromFile = () => {
+    // Create a file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.csv';
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          let data;
+          
+          if (file.name.endsWith('.json')) {
+            data = JSON.parse(content);
+          } else if (file.name.endsWith('.csv')) {
+            // Basic CSV parsing for demo purposes
+            const lines = content.split('\n');
+            const headers = lines[0].split(',');
+            
+            if (headers.includes('id') && headers.includes('label')) {
+              // Parse as nodes CSV
+              data = {
+                nodes: lines.slice(1).map(line => {
+                  const values = line.split(',');
+                  return {
+                    id: values[0],
+                    label: values[1],
+                    color: values[2] || '#0ea5e9'
+                  };
+                }).filter(node => node.id && node.label),
+                edges: []
+              };
+            } else if (headers.includes('source') && headers.includes('target')) {
+              // Parse as edges CSV
+              data = {
+                nodes: [],
+                edges: lines.slice(1).map(line => {
+                  const values = line.split(',');
+                  return {
+                    source: values[0],
+                    target: values[1],
+                    label: values[2] || ''
+                  };
+                }).filter(edge => edge.source && edge.target)
+              };
+            }
+          }
+
+          if (data) {
+            // Set import mode and switch to dataIO mode
+            setImportMode('replace');
+            setMode('dataIO');
+            setUtilityPanelVisible(true);
+            
+            // Import the data
+            useAppStore.getState().validateAndImportData(data);
+          }
+        } catch (error) {
+          alert('Failed to parse file. Please check the format.');
+        }
+      };
+      
+      reader.readAsText(file);
+    };
+    
+    input.click();
+  };
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-8 relative overflow-hidden">
+      {/* Dynamic Animated Background */}
+      <div className="absolute inset-0 bg-bg-primary overflow-hidden">
+        {/* FIXED: Increased opacity and used theme colors for more vibrancy */}
+        <div 
+          className="absolute -inset-1/3 bg-[radial-gradient(circle_at_30%_40%,rgba(249,115,22,0.25),transparent_50%)] animate-[pulse-glow_10s_ease-in-out_infinite]"
+        />
+        <div 
+          className="absolute -inset-1/3 bg-[radial-gradient(circle_at_70%_60%,rgba(14,165,233,0.2),transparent_50%)] animate-[gentle-drift-one_28s_ease-in-out_-5s_infinite]"
+        />
+         <div 
+          className="absolute -inset-1/3 bg-[radial-gradient(circle_at_50%_50%,rgba(234,179,8,0.15),transparent_60%)] animate-[gentle-drift-two_35s_ease-in-out_infinite]"
+        />
+        <div className="absolute inset-0 opacity-20 dark:opacity-40">
+          <div className="h-full w-full bg-[linear-gradient(rgba(15,23,42,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+        </div>
+      </div>
+      
+      <div className="relative z-10 text-center max-w-2xl">
+        <div className="mb-8">
+          <div className="w-24 h-24 mx-auto relative group">
+            {/* FIXED: Increased blur, spread, and opacity of the drop-shadow for a more vibrant, multi-color glow */}
+            <img 
+              src="/src/assets/netmap_logo.png" 
+              alt="NetMap Logo" 
+              className="w-full h-full object-contain transition-transform group-hover:scale-110 duration-500 
+                [filter:drop-shadow(0_0_18px_rgba(249,115,22,0.6))_drop-shadow(0_0_18px_rgba(14,165,233,0.5))]"
+            />
+          </div>
+        </div>
+        <h1 className="text-display font-bold mb-4 bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-tertiary bg-clip-text text-transparent">
+          Welcome to NetMap
+        </h1>
+        <p className="text-body-large text-text-muted mb-8 leading-relaxed">
+          Create, visualize, and analyze concept maps with intuitive drag & drop editing, 
+          smart layouts, and powerful export options.
+        </p>
+        <div className="mb-8">
+          <button 
+            onClick={createSampleMap}
+            className="btn-base btn-primary text-lg px-8 py-4"
+          >
+            <span className="relative z-10">Create New Concept Map</span>
+          </button>
+        </div>
+        <div className="text-small text-text-muted">
+          or{' '}
+          <button 
+            onClick={handleLoadFromFile}
+            className="text-accent-secondary hover:text-accent-secondary-hover underline"
+          >
+            load from file
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+###############################################################################
+### FILE: hooks/useLongPress.ts
+###############################################################################
+import { useCallback, useRef } from 'react';
+
+// Defines the options for the long press hook
+interface LongPressOptions {
+  shouldPreventDefault?: boolean;
+  delay?: number;
+}
+
+/**
+ * A hook to detect long press events on mouse and touch devices.
+ * @param onLongPress - Callback for the long press event.
+ * @param onClick - Callback for a regular click event.
+ * @param options - Configuration for delay and default event prevention.
+ */
+export const useLongPress = (
+  onLongPress: (event: React.MouseEvent | React.TouchEvent) => void,
+  onClick: (event: React.MouseEvent | React.TouchEvent) => void,
+  { shouldPreventDefault = true, delay = 400 }: LongPressOptions = {}
+) => {
+  // FIXED: The ref type must include `| null` and be initialized with `null`.
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // FIXED: Initialize the target ref with `null`.
+  const target = useRef<EventTarget | null>(null);
+
+  const start = useCallback(
+    (event: React.MouseEvent | React.TouchEvent) => {
+      if (shouldPreventDefault && event.target) {
+        target.current = event.target;
+        const preventDefault = (e: Event) => e.preventDefault();
+        event.target.addEventListener('contextmenu', preventDefault, { once: true });
+      }
+      timeout.current = setTimeout(() => {
+        onLongPress(event);
+        // FIXED: Set the ref back to `null` after firing to match the type.
+        timeout.current = null;
+      }, delay);
+    },
+    [onLongPress, delay, shouldPreventDefault]
+  );
+
+  const clear = useCallback(
+    (event: React.MouseEvent | React.TouchEvent, shouldTriggerClick = true) => {
+      // This logic is now robust. If the timeout completed, timeout.current is null,
+      // and isShortClick will correctly be false.
+      const isShortClick = timeout.current !== null;
+      
+      // Always clear the timer if it exists.
+      if (timeout.current) {
+        clearTimeout(timeout.current);
+      }
+
+      if (shouldTriggerClick && isShortClick && event.target === target.current) {
+        onClick(event);
+      }
+      
+      if (shouldPreventDefault && target.current) {
+        const preventDefault = (e: Event) => e.preventDefault();
+        target.current.removeEventListener('contextmenu', preventDefault);
+      }
+    },
+    [shouldPreventDefault, onClick]
+  );
+
+  return {
+    onMouseDown: (e: React.MouseEvent) => start(e),
+    onTouchStart: (e: React.TouchEvent) => start(e),
+    onMouseUp: (e: React.MouseEvent) => clear(e),
+    onMouseLeave: (e: React.MouseEvent) => clear(e, false),
+    onTouchEnd: (e: React.TouchEvent) => clear(e),
+  };
+};
+
+
+###############################################################################
+### FILE: hooks/useResponsive.ts
+###############################################################################
+/**
+ * A centralized hook for responsive design.
+ * Provides a boolean indicating if the current viewport matches the desktop breakpoint.
+ * Uses the performant `window.matchMedia` API.
+ */
+import { useState, useEffect } from 'react';
+
+// Using 768px as the standard 'md' breakpoint from Tailwind.
+const DESKTOP_BREAKPOINT = '(min-width: 768px)';
+
+export const useResponsive = () => {
+  const [isDesktop, setIsDesktop] = useState(
+    () => window.matchMedia(DESKTOP_BREAKPOINT).matches
+  );
+
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia(DESKTOP_BREAKPOINT);
+    const listener = (event: MediaQueryListEvent) => {
+      setIsDesktop(event.matches);
+    };
+
+    mediaQueryList.addEventListener('change', listener);
+
+    // Cleanup listener on component unmount
+    return () => {
+      mediaQueryList.removeEventListener('change', listener);
+    };
+  }, []);
+
+  return { isDesktop };
+};
+
+
+###############################################################################
+### FILE: hooks/useScrollOverflow.ts
+###############################################################################
+import { useState, useEffect, RefObject } from 'react';
+
+export const useScrollOverflow = (ref: RefObject<HTMLElement | null>) => {
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const checkOverflow = () => {
+      const hasOverflow = element.scrollWidth > element.clientWidth;
+      setIsOverflowing(hasOverflow);
+    };
+
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    resizeObserver.observe(element);
+
+    const mutationObserver = new MutationObserver(checkOverflow);
+    mutationObserver.observe(element, { childList: true, subtree: true });
+
+    // A small delay helps ensure content has rendered before the initial check.
+    const initialCheckTimeout = setTimeout(checkOverflow, 50);
+
+    return () => {
+      clearTimeout(initialCheckTimeout);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [ref]); // Re-run if the ref itself changes
+
+  return isOverflowing;
+};
+
+
+###############################################################################
+### FILE: index.css
+###############################################################################
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Global CSS Foundation for Concept Map Builder
+ * 
+ * This file establishes the complete design system including:
+ * - CSS custom properties for light/dark mode theming
+ * - Glassmorphism transparency levels (Level 1: opaque, Level 2: semi-transparent, Level 3: highly transparent)
+ * - Typography system using system fonts
+ * - Base component styles and utilities
+ * - Animation and transition foundations
+ */
+
+/* ===== CSS CUSTOM PROPERTIES (DESIGN TOKENS) ===== */
+:root {
+  /* Light Mode Colors */
+  --color-bg-primary: #f8fafc;     /* App canvas background */
+  --color-bg-secondary: #ffffff;   /* Card backgrounds, panels */
+  --color-bg-tertiary: #f1f5f9;    /* Alternative surfaces */
+
+  /* Enhanced Golden Blue & Orange Theme */
+  --color-accent-primary: #0ea5e9;        /* Ocean blue for primary */
+  --color-accent-primary-hover: #0284c7;  /* Darker blue for hover */
+  --color-accent-secondary: #f97316;      /* Vibrant orange */
+  --color-accent-secondary-hover: #ea580c; /* Darker orange for hover */
+  --color-accent-tertiary: #eab308;       /* Golden yellow tertiary */
+  --color-accent-quaternary: #fbbf24;     /* Lighter golden accent */
+
+  /* Text Colors */
+  --color-text-base: #0f172a;      /* Deep slate - Main body text */
+  --color-text-muted: #64748b;     /* Muted slate - Subdued text */
+  --color-text-inverted: #f8fafc;  /* Light - Text on dark backgrounds */
+  --color-text-accent: #f97316;    /* Orange accent text */
+
+  /* Border & Divider */
+  --color-border: #e2e8f0;         /* Light borders */
+
+  /* Status Colors */
+  --color-danger: #ef4444;         /* Red - Errors */
+  --color-success: #22c55e;        /* Green - Success states */
+  --color-warning: #f59e0b;        /* Amber - Warnings */
+
+  /* Enhanced Glassmorphism with proper backdrop filters */
+  --glass-level-1: rgba(255, 255, 255, 0.95);   /* Near opaque with subtle transparency */
+  --glass-level-2: rgba(255, 255, 255, 0.85);   /* Semi-transparent with strong blur */
+  --glass-level-3: rgba(255, 255, 255, 0.75);   /* More transparent with medium blur */
+  --glass-backdrop-overlay: rgba(0, 0, 0, 0.4);  /* Modal backdrop */
+  
+  /* Gradient Definitions */
+  --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #eab308 100%);
+  --gradient-secondary: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #f97316 100%);
+}
+
+/* Dark Mode Colors - Enhanced for dramatic effect */
+.dark {
+  --color-bg-primary: #0f172a;     /* Very deep slate background */
+  --color-bg-secondary: #1e293b;   /* Slightly lighter slate for cards */
+  --color-bg-tertiary: #334155;    /* Medium slate for surfaces */
+
+  --color-accent-primary: #0ea5e9;        /* Ocean blue primary */
+  --color-accent-primary-hover: #0284c7;  /* Darker blue for hover */
+  --color-accent-secondary: #f97316;      /* Vibrant orange accent */
+  --color-accent-secondary-hover: #fb923c; /* Lighter orange for hover */
+  --color-accent-tertiary: #eab308;       /* Golden yellow for dark mode */
+  --color-accent-quaternary: #fbbf24;     /* Lighter golden accent */
+
+  --color-text-base: #f8fafc;      /* Near white - Main body text */
+  --color-text-muted: #94a3b8;     /* Light slate - Subdued text */
+  --color-text-inverted: #0f172a;  /* Deep slate - Text on light backgrounds */
+
+  --color-border: #334155;         /* Subtle borders in dark mode */
+
+  --color-danger: #ef4444;         /* Bright red for dark mode */
+  --color-success: #22c55e;        /* Bright green for dark mode */
+
+  /* Enhanced Dark Glassmorphism */
+  --glass-level-1: rgba(30, 41, 59, 0.95);   /* Near opaque dark glass */
+  --glass-level-2: rgba(30, 41, 59, 0.85);   /* Semi-transparent dark glass */
+  --glass-level-3: rgba(30, 41, 59, 0.75);   /* More transparent dark glass */
+  --glass-backdrop-overlay: rgba(0, 0, 0, 0.6); /* Darker modal backdrop */
+  
+  /* Dark Mode Gradients */
+  --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #eab308 100%);
+  --gradient-secondary: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #f97316 100%);
+}
+
+/* ===== BASE STYLES ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px; /* Base font size for rem calculations */
+  line-height: 1.5;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-base);
+  overflow: hidden; /* Prevent body scroll, app handles its own scrolling */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== ENHANCED GLASSMORPHISM UTILITY CLASSES ===== */
+.glass-level-1 {
+  background: var(--glass-level-1);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.glass-level-2 {
+  background: var(--glass-level-2);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-level-3 {
+  background: var(--glass-level-3);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glass-backdrop {
+  background: var(--glass-backdrop-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Dark mode glassmorphism adjustments */
+.dark .glass-level-1 {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-level-2 {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glass-level-3 {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ===== TYPOGRAPHY CLASSES ===== */
+.text-display {
+  font-size: 2.25rem;   /* 36px */
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.text-h2 {
+  font-size: 1.875rem;  /* 30px */
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.text-h3 {
+  font-size: 1.5rem;    /* 24px */
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.text-body-large {
+  font-size: 1.125rem;  /* 18px */
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-body {
+  font-size: 1rem;      /* 16px */
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-small {
+  font-size: 0.875rem;  /* 14px */
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ===== BUTTON BASE STYLES ===== */
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  min-height: 44px; /* Accessibility: minimum touch target */
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 
+    0 4px 14px rgba(249, 115, 22, 0.3),
+    0 2px 8px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  background: var(--gradient-accent);
+  transform: scale(1.02) translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(249, 115, 22, 0.4),
+    0 4px 12px rgba(15, 23, 42, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary:active {
+  transform: scale(0.98) translateY(0);
+  box-shadow: 
+    0 2px 8px rgba(249, 115, 22, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-base);
+  border: 1px solid var(--color-border);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-secondary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-secondary:hover::before {
+  left: 100%;
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-tertiary);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 0 1px rgba(14, 165, 233, 0.3);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-base);
+  border: 1px solid var(--color-border);
+}
+
+.btn-ghost:hover {
+  background: rgba(241, 245, 249, 0.1);
+}
+
+.dark .btn-ghost:hover {
+  background: rgba(31, 41, 55, 0.2);
+}
+
+/* ===== INPUT STYLES ===== */
+.input-base {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-base);
+  font-size: 0.875rem;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--color-accent-secondary);
+  box-shadow: 
+    0 0 0 3px rgba(249, 115, 22, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.input-base::placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ===== TAB STYLES ===== */
+.tab-container {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tab-container::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+  min-height: 44px;
+  position: relative;
+}
+
+.tab-button:hover {
+  color: var(--color-accent-primary);
+  background: rgba(14, 165, 233, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 12px rgba(14, 165, 233, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 8px 25px rgba(14, 165, 233, 0.25),
+    0 4px 12px rgba(234, 179, 8, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.tab-button.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-primary);
+  opacity: 0.1;
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: 1.5px;
+  box-shadow: 
+    0 0 12px rgba(14, 165, 233, 0.8),
+    0 0 6px rgba(234, 179, 8, 0.6);
+}
+
+/* ===== CARD STYLES ===== */
+.card-base {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-base::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.3), transparent);
+}
+
+.card-base:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.dark .card-base {
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    0 1px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark .card-base:hover {
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.card-elevated {
+  background: var(--glass-level-3);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.dark .card-elevated {
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ===== ANIMATION UTILITIES ===== */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-in-out;
+}
+
+.animate-slide-in-bottom {
+  animation: slideInBottom 0.3s ease-in-out;
+}
+
+.animate-pop {
+  animation: pop 0.15s ease-in-out;
+}
+
+/* Removed continuous animations for better performance and less distraction */
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { 
+    opacity: 0; 
+    transform: translateX(100%); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+@keyframes slideInBottom {
+  from { 
+    opacity: 0; 
+    transform: translateY(100%); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Removed keyframes for continuous animations */
+
+/* ===== UTILITY CLASSES ===== */
+.shadow-glow-primary {
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+.shadow-glow-secondary {
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+}
+
+.transition-standard {
+  transition: all 0.15s ease-in-out;
+}
+
+.transition-moderate {
+  transition: all 0.3s ease-in-out;
+}
+
+.transition-slow {
+  transition: all 0.5s ease-in-out;
+}
+
+/* ===== SCROLLBAR STYLING ===== */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== ACCESSIBILITY HELPERS ===== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== RESPONSIVE BREAKPOINT HELPERS ===== */
+@media (max-width: 767px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .desktop-hidden {
+    display: none !important;
+  }
+}
+
+
+/* ===== NEW: AMBIENT ANIMATIONS FOR WELCOME SCREEN ===== */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes gentle-drift-one {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(8vw, 12vh) scale(1.1); }
+  50% { transform: translate(-8vw, 18vh) scale(0.9); }
+  75% { transform: translate(12vw, -8vh) scale(1.1); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes gentle-drift-two {
+  0% { transform: translate(0, 0) scale(1.1); }
+  25% { transform: translate(-8vw, -12vh) scale(0.9); }
+  50% { transform: translate(8vw, -18vh) scale(1.1); }
+  75% { transform: translate(-12vw, 8vh) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1.1); }
+}
+
+
+###############################################################################
+### FILE: main.tsx
+###############################################################################
+/**
+ * Main Entry Point for Concept Map Builder
+ * 
+ * This file initializes the React application and renders the root App component.
+ * It imports global styles and sets up the foundation for the entire application.
+ */
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+
+
+
+###############################################################################
+### FILE: stores/appState.ts
+###############################################################################
+/**
+ * Comprehensive Application State Management with Undo/Redo
+ *
+ * This file establishes the Zustand store, correctly combining `temporal` for
+ * undo/redo with `persist` for localStorage persistence.
+ *
+ * DEFINITIVE FIX:
+ * The persistent issue was a type mismatch in the store creator. The creator
+ * function MUST return an object that perfectly matches the `AppStore` type,
+ * including the properties added by the `temporal` middleware (`pastStates`,
+ * `futureStates`, `undo`, `redo`). This version defines the entire state
+ * object inline within the creator, ensuring TypeScript can verify the type
+ * compatibility and correctly infer the store's type for all components.
+ */
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { temporal } from 'zundo';
+import type { StateCreator } from 'zustand';
+import type {
+  NodeData,
+  EdgeData,
+  LayoutMeta,
+  Snapshot,
+  LayoutConfigs,
+  AppStore,
+  AppSettings,
+  InteractionMode,
+} from '../types/app';
+
+// ===== HELPER FUNCTIONS =====
+const generateId = (prefix: string = 'item'): string =>
+  `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+const getDefaultLayoutMeta = (): LayoutMeta => ({
+  nodePositions: {},
+  lockedNodes: [],
+});
+
+export const initialLayoutConfigs: LayoutConfigs = {
+  cola: { name: 'cola', animate: true, padding: 30, nodeSpacing: 50, edgeLength: 100, infinite: false },
+  dagre: { name: 'dagre', nodeSep: 50, rankSep: 100, rankDir: 'TB', padding: 30 },
+  concentric: { name: 'concentric', padding: 30, startAngle: (3 / 2) * Math.PI, sweep: undefined, clockwise: true, equidistant: false, minNodeSpacing: 10 },
+  grid: { name: 'grid', padding: 30, rows: undefined, cols: undefined },
+};
+
+// This is a clean version of the initial state, used for the `reset` action.
+const cleanInitialState = {
+  elements: { nodes: [], edges: [] },
+  layouts: {
+    preset: getDefaultLayoutMeta(),
+    cola: getDefaultLayoutMeta(),
+    dagre: getDefaultLayoutMeta(),
+    concentric: getDefaultLayoutMeta(),
+    grid: getDefaultLayoutMeta(),
+  },
+  layoutConfigs: initialLayoutConfigs,
+  currentLayout: 'preset' as const,
+  mode: 'view' as const,
+  selectedNodes: [],
+  selectedEdges: [],
+  selectedColor: '#0ea5e9',
+  propagateToEdges: true,
+  snapshots: [],
+  settings: { theme: 'dark' as const, inputMode: 'auto' as const, useConnectorNodes: false, canvasLocked: false, autoSave: true, gridSnapping: false },
+  sidebarCollapsed: false,
+  utilityPanelVisible: false,
+  utilityPanelWidth: 320,
+  utilityPanelHeight: 300,
+  importMode: 'replace' as const,
+  validationErrors: [],
+};
+
+
+// ===== STORE IMPLEMENTATION =====
+
+const storeCreator: StateCreator<AppStore> = (set, get) => ({
+  // --- STATE PROPERTIES (must match AppState) ---
+  ...cleanInitialState,
+  pastStates: [], // Dummy property for type compliance with zundo
+  futureStates: [], // Dummy property for type compliance with zundo
+
+  // --- ACTION IMPLEMENTATIONS ---
+  setMode: (mode) => set({ mode }),
+  setLayout: (layout) => set({ currentLayout: layout, mode: 'layout' }),
+  updateLayoutConfig: (layout, config) =>
+    set((state) => ({
+      layoutConfigs: { ...state.layoutConfigs, [layout]: { ...state.layoutConfigs[layout], ...config } },
+    })),
+  addNode: (nodeInput) => {
+    const id = nodeInput.id || generateId('node');
+    const newNode: NodeData = { ...nodeInput, id, label: nodeInput.label || `Node`, color: nodeInput.color || get().selectedColor || '#0ea5e9', position: nodeInput.position || { x: Math.random() * 800, y: Math.random() * 600 } };
+    set((state) => ({ elements: { ...state.elements, nodes: [...state.elements.nodes, newNode] } }));
+    return newNode;
+  },
+  updateNode: (id, updates) =>
+    set((state) => ({
+      elements: { ...state.elements, nodes: state.elements.nodes.map((n) => (n.id === id ? { ...n, ...updates } : n)) },
+    })),
+  deleteNode: (id) => get().deleteNodes([id]),
+  deleteNodes: (ids) =>
+    set((state) => {
+      const idSet = new Set(ids);
+      return {
+        elements: {
+          nodes: state.elements.nodes.filter((n) => !idSet.has(n.id)),
+          edges: state.elements.edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)),
+        },
+        selectedNodes: state.selectedNodes.filter((nid) => !idSet.has(nid)),
+      };
+    }),
+  getNodeById: (id) => get().elements.nodes.find(n => n.id === id),
+  lockNode: (id) => get().updateNode(id, { locked: true }),
+  unlockNode: (id) => get().updateNode(id, { locked: false }),
+  addEdge: (edgeInput) => {
+    const id = edgeInput.id || generateId('edge');
+    const sourceNode = get().elements.nodes.find(n => n.id === edgeInput.source);
+    const newEdge: EdgeData = { ...edgeInput, id, label: edgeInput.label || '', color: edgeInput.color || (sourceNode && !sourceNode.isConnectorNode ? sourceNode.color : '#64748b') };
+    set((state) => ({ elements: { ...state.elements, edges: [...state.elements.edges, newEdge] } }));
+    return newEdge;
+  },
+  updateEdge: (id, updates) =>
+    set((state) => ({
+      elements: { ...state.elements, edges: state.elements.edges.map((e) => (e.id === id ? { ...e, ...updates } : e)) },
+    })),
+  deleteEdge: (id) => get().deleteEdges([id]),
+  deleteEdges: (ids) =>
+    set((state) => {
+      const idSet = new Set(ids);
+      return {
+        elements: { ...state.elements, edges: state.elements.edges.filter((e) => !idSet.has(e.id)) },
+        selectedEdges: state.selectedEdges.filter((eid) => !idSet.has(eid)),
+      };
+    }),
+  getEdgeById: (id) => get().elements.edges.find(e => e.id === id),
+  selectNode: (id, addToSelection = false) =>
+    set((state) => ({
+      selectedNodes: addToSelection ? (state.selectedNodes.includes(id) ? state.selectedNodes.filter((nid) => nid !== id) : [...state.selectedNodes, id]) : [id],
+      selectedEdges: addToSelection ? state.selectedEdges : [],
+    })),
+  selectEdge: (id, addToSelection = false) =>
+    set((state) => ({
+      selectedEdges: addToSelection ? (state.selectedEdges.includes(id) ? state.selectedEdges.filter((eid) => eid !== id) : [...state.selectedEdges, id]) : [id],
+      selectedNodes: addToSelection ? state.selectedNodes : [],
+    })),
+  clearSelection: () => set({ selectedNodes: [], selectedEdges: [] }),
+  setSelectedColor: (color) => set({ selectedColor: color }),
+  setPropagateToEdges: (propagate) => set({ propagateToEdges: propagate }),
+  paintNode: (id, color) => {
+    const paintColor = color || get().selectedColor;
+    get().updateNode(id, { color: paintColor });
+    if (get().propagateToEdges) {
+      const sourceNode = get().elements.nodes.find(n => n.id === id);
+      if (sourceNode && !sourceNode.isConnectorNode) {
+        get().elements.edges.forEach((edge) => {
+          if (edge.source === id) get().updateEdge(edge.id, { color: paintColor });
+        });
+      }
+    }
+  },
+  paintEdge: (id, color) => {
+    const paintColor = color || get().selectedColor;
+    get().updateEdge(id, { color: paintColor });
+  },
+  saveSnapshot: (name, description) =>
+    set((state) => {
+      const newSnapshot: Snapshot = { id: generateId('snapshot'), name, description, timestamp: Date.now(), elements: JSON.parse(JSON.stringify(state.elements)), layouts: JSON.parse(JSON.stringify(state.layouts)) };
+      return { snapshots: [...state.snapshots, newSnapshot] };
+    }),
+  restoreSnapshot: (id) =>
+    set((state) => {
+      const snapshot = state.snapshots.find((s) => s.id === id);
+      if (!snapshot) return {};
+      return { elements: JSON.parse(JSON.stringify(snapshot.elements)), layouts: JSON.parse(JSON.stringify(snapshot.layouts)), currentLayout: 'preset' };
+    }),
+  deleteSnapshot: (id) =>
+    set((state) => ({ snapshots: state.snapshots.filter((s) => s.id !== id) })),
+  importData: (data, mode) => {
+    const importMode = mode || get().importMode;
+    if (importMode === 'replace') {
+      set({ elements: data, selectedNodes: [], selectedEdges: [] });
+      return;
+    }
+    set(state => {
+      const existingNodeIds = new Set(state.elements.nodes.map((n) => n.id));
+      const newNodes = data.nodes.filter((n) => !existingNodeIds.has(n.id));
+      const existingEdgeIds = new Set(state.elements.edges.map((e) => e.id));
+      const newEdges = data.edges.filter((e) => !existingEdgeIds.has(e.id));
+      return { elements: { nodes: [...state.elements.nodes, ...newNodes], edges: [...state.elements.edges, ...newEdges] } };
+    });
+  },
+  validateAndImportData: (data) => {
+    if (data && (data.nodes?.length > 0 || data.edges?.length > 0)) {
+        get().importData(data, 'replace');
+    }
+  },
+  setImportMode: (mode) => set({ importMode: mode }),
+  updateSettings: (updates: Partial<AppSettings>) => set((state) => ({ settings: { ...state.settings, ...updates } })),
+  toggleTheme: () => set(state => ({ settings: { ...state.settings, theme: state.settings.theme === 'dark' ? 'light' : 'dark' } })),
+  toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  setUtilityPanelVisible: (visible: boolean, mode?: InteractionMode) => {
+    if (visible) {
+      if (mode) {
+        set({ utilityPanelVisible: true, mode });
+      } else {
+        set({ utilityPanelVisible: true });
+      }
+    } else {
+      set({ utilityPanelVisible: false });
+    }
+  },
+  setUtilityPanelWidth: (width) => set({ utilityPanelWidth: width }),
+  setUtilityPanelHeight: (height) => set({ utilityPanelHeight: height }),
+  reset: () => set(cleanInitialState),
+  // Placeholders that will be overwritten by zundo
+  undo: () => {},
+  redo: () => {},
+});
+
+export const useAppStore = create<AppStore>()(
+  temporal(
+    persist(
+      storeCreator,
+      {
+        name: 'concept-map-storage',
+        partialize: (state) => {
+          const { pastStates, futureStates, undo, redo, ...rest } = state;
+          return rest;
+        },
+      }
+    )
+  )
+);
+
+
+###############################################################################
+### FILE: types/cytoscape-extensions.d.ts
+###############################################################################
+declare module 'cytoscape-edgehandles' {
+  import { Core, NodeSingular, EdgeSingular } from 'cytoscape';
+  
+  interface EdgeHandlesOptions {
+    canConnect?: (sourceNode: NodeSingular, targetNode: NodeSingular) => boolean;
+    edgeParams?: (sourceNode: NodeSingular, targetNode: NodeSingular) => any;
+    hoverDelay?: number;
+    snap?: boolean;
+    snapThreshold?: number;
+    snapFrequency?: number;
+    noEdgeEventsInDraw?: boolean;
+    disableBrowserGestures?: boolean;
+    handleSize?: number;
+    handleColor?: string;
+    handleLineColor?: string;
+    handleLineWidth?: number;
+    handleNodes?: string;
+    handlePosition?: string;
+    edgeType?: (sourceNode: NodeSingular, targetNode: NodeSingular) => string;
+    loopAllowed?: (node: NodeSingular) => boolean;
+    nodeLoopOffset?: number;
+    complete?: (sourceNode: NodeSingular, targetNode: NodeSingular, addedEdge: EdgeSingular) => void;
+  }
+
+  interface EdgeHandlesApi {
+    enable(): void;
+    disable(): void;
+    destroy(): void;
+  }
+
+  declare module 'cytoscape' {
+    interface Core {
+      edgehandles(options?: EdgeHandlesOptions): EdgeHandlesApi;
+    }
+  }
+
+  const extension: (cytoscape: any) => void;
+  export = extension;
+}
+
+declare module 'cytoscape-dagre' {
+  const extension: (cytoscape: any) => void;
+  export = extension;
+}
+
+declare module 'cytoscape-cose-bilkent' {
+  const extension: (cytoscape: any) => void;
+  export = extension;
+}
+
+// ADDED: Type definition for cytoscape-cola
+declare module 'cytoscape-cola' {
+  const extension: (cytoscape: any) => void;
+  export = extension;
+}
+
+
+###############################################################################
+### FILE: utils/cytoscapeInit.ts
+###############################################################################
+/**
+ * Cytoscape Initialization and Management
+ *
+ * This file handles the setup, configuration, and lifecycle of the
+ * Cytoscape.js instance. It includes style definitions, element
+ * conversion, and an instance manager that exposes functions to
+ * update the graph's mode, elements, theme, and apply layouts.
+ */
+import cytoscape, { Core, EdgeSingular, NodeSingular, EdgeDefinition, NodeDefinition, LayoutOptions } from 'cytoscape';
+import edgehandles from 'cytoscape-edgehandles';
+import dagre from 'cytoscape-dagre';
+import cola from 'cytoscape-cola'; // Physics-based layout
+import { NodeData, EdgeData, InteractionMode } from '../types/app';
+
+// Register extensions
+cytoscape.use(edgehandles);
+cytoscape.use(dagre);
+cytoscape.use(cola);
+
+export interface CytoscapeConfig {
+  container: HTMLElement;
+  elements: {
+    nodes: NodeData[];
+    edges: EdgeData[];
+  };
+  mode: InteractionMode;
+  theme: 'light' | 'dark';
+}
+
+export interface CytoscapeInstance {
+  cy: Core;
+  edgeHandles: any;
+  destroy: () => void;
+  updateMode: (mode: InteractionMode) => void;
+  updateElements: (elements: { nodes: NodeData[]; edges: EdgeData[] }) => void;
+  updateTheme: (theme: 'light' | 'dark') => void;
+  applyLayout: (config: LayoutOptions) => void;
+}
+
+const getCursorForMode = (mode: InteractionMode): string => {
+  switch (mode) {
+    case 'manualEdit':
+    case 'paint':
+      return 'crosshair';
+    case 'view':
+    case 'layout':
+    case 'analyze':
+      return 'grab';
+    default:
+      return 'default';
+  }
+};
+
+const getBaseStyle = (theme: 'light' | 'dark'): any[] => [
+  {
+    selector: 'node',
+    style: {
+      'background-color': 'data(color)',
+      'label': 'data(label)',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'color': theme === 'dark' ? '#f8fafc' : '#0f172a',
+      'font-size': '12px',
+      'font-family': 'system-ui, sans-serif',
+      'font-weight': 600,
+      'text-outline-width': 2,
+      'text-outline-color': theme === 'dark' ? '#1e293b' : '#ffffff',
+      'width': 60,
+      'height': 60,
+      'border-width': 2,
+      'border-color': theme === 'dark' ? '#334155' : '#e2e8f0',
+      'shape': 'ellipse',
+      'transition-property': 'background-color, border-color',
+      'transition-duration': 0.3,
+    },
+  },
+  {
+    selector: 'node:selected',
+    style: {
+      'border-width': 4,
+      'border-color': '#f97316',
+    },
+  },
+  {
+    selector: 'node[locked="true"]',
+    style: {
+      'border-style': 'dashed',
+    },
+  },
+  {
+    selector: 'edge',
+    style: {
+      'width': 3,
+      'line-color': 'data(color)',
+      'target-arrow-color': 'data(color)',
+      'target-arrow-shape': 'triangle',
+      'arrow-scale': 1.2,
+      'curve-style': 'bezier',
+      'label': 'data(label)',
+      'font-size': '10px',
+      'color': theme === 'dark' ? '#f8fafc' : '#0f172a',
+      'text-background-color': theme === 'dark' ? '#1e293b' : '#ffffff',
+      'text-background-opacity': 0.8,
+      'transition-property': 'line-color, target-arrow-color',
+      'transition-duration': 0.3,
+    },
+  },
+  {
+    selector: 'edge:selected',
+    style: {
+      'width': 5,
+      'line-color': '#f97316',
+      'target-arrow-color': '#f97316',
+    },
+  },
+];
+
+const convertToElements = (nodes: NodeData[], edges: EdgeData[]): (NodeDefinition | EdgeDefinition)[] => {
+  const nodeElements: NodeDefinition[] = nodes.map(node => ({
+    data: {
+      id: node.id,
+      label: node.label,
+      color: node.color,
+      locked: node.locked,
+    },
+    position: node.position,
+    grabbable: true,
+    selectable: true,
+  }));
+
+  const edgeElements: EdgeDefinition[] = edges.map(edge => ({
+    data: {
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label,
+      color: edge.color,
+    },
+    selectable: true,
+  }));
+
+  return [...nodeElements, ...edgeElements];
+};
+
+export const initCytoscape = (config: CytoscapeConfig): CytoscapeInstance => {
+  const { container, elements, mode, theme } = config;
+
+  const cy = cytoscape({
+    container,
+    elements: convertToElements(elements.nodes, elements.edges),
+    style: getBaseStyle(theme),
+    layout: { name: 'preset' },
+    userZoomingEnabled: true,
+    boxSelectionEnabled: true,
+  });
+
+  const edgeHandles = cy.edgehandles({
+    handleSize: 12,
+    handleColor: '#0ea5e9',
+    edgeType: () => 'flat',
+    complete: (_sourceNode: NodeSingular, _targetNode: NodeSingular, addedEdge: EdgeSingular) => {
+      cy.trigger('edgeAdded', [addedEdge]);
+    },
+  });
+
+  const updateMode = (newMode: InteractionMode) => {
+    cy.scratch('mode', newMode);
+    container.style.cursor = getCursorForMode(newMode);
+
+    if (newMode === 'manualEdit') {
+      edgeHandles.enable();
+    } else {
+      edgeHandles.disable();
+    }
+    
+    if (newMode === 'manualEdit' || newMode === 'layout') {
+      cy.nodes().grabify();
+    } else {
+      cy.nodes().ungrabify();
+    }
+
+    if (newMode === 'view' || newMode === 'analyze') {
+        cy.userPanningEnabled(true);
+    } else {
+        cy.userPanningEnabled(false);
+    }
+  };
+
+  const updateElements = (newElements: { nodes: NodeData[]; edges: EdgeData[] }) => {
+    const cytoscapeElements = convertToElements(newElements.nodes, newElements.edges);
+    cy.json({ elements: cytoscapeElements });
+    updateMode(cy.scratch('mode') || 'view');
+  };
+
+  const updateTheme = (newTheme: 'light' | 'dark') => {
+    cy.style(getBaseStyle(newTheme));
+  };
+  
+  const applyLayout = (layoutConfig: LayoutOptions) => {
+    if (cy.nodes().length > 0) {
+      cy.layout(layoutConfig).run();
+    }
+  };
+
+  const destroy = () => {
+    edgeHandles.destroy();
+    cy.destroy();
+  };
+
+  updateMode(mode);
+
+  return {
+    cy,
+    edgeHandles,
+    destroy,
+    updateMode,
+    updateElements,
+    updateTheme,
+    applyLayout,
+  };
+}; 
+
+
+###############################################################################
+### FILE: vite-env.d.ts
+###############################################################################
+/// <reference types="vite/client" />
+
+
+

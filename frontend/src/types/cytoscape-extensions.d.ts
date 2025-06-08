@@ -46,4 +46,10 @@ declare module 'cytoscape-dagre' {
 declare module 'cytoscape-cose-bilkent' {
   const extension: (cytoscape: any) => void;
   export = extension;
-} 
+}
+
+// ADDED: Type definition for cytoscape-cola
+declare module 'cytoscape-cola' {
+  const extension: (cytoscape: any) => void;
+  export = extension;
+}

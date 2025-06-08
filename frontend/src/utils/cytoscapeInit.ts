@@ -1,13 +1,21 @@
-import cytoscape, { Core, EdgeSingular, NodeSingular, EdgeDefinition, NodeDefinition } from 'cytoscape';
+/**
+ * Cytoscape Initialization and Management
+ *
+ * This file handles the setup, configuration, and lifecycle of the
+ * Cytoscape.js instance. It includes style definitions, element
+ * conversion, and an instance manager that exposes functions to
+ * update the graph's mode, elements, theme, and apply layouts.
+ */
+import cytoscape, { Core, EdgeSingular, NodeSingular, EdgeDefinition, NodeDefinition, LayoutOptions } from 'cytoscape';
 import edgehandles from 'cytoscape-edgehandles';
 import dagre from 'cytoscape-dagre';
-import coseBilkent from 'cytoscape-cose-bilkent';
-import { NodeData, EdgeData, InteractionMode } from '../stores/appState';
+import cola from 'cytoscape-cola'; // Physics-based layout
+import { NodeData, EdgeData, InteractionMode } from '../types/app';
 
 // Register extensions
 cytoscape.use(edgehandles);
 cytoscape.use(dagre);
-cytoscape.use(coseBilkent);
+cytoscape.use(cola);
 
 export interface CytoscapeConfig {
   container: HTMLElement;
@@ -26,11 +34,24 @@ export interface CytoscapeInstance {
   updateMode: (mode: InteractionMode) => void;
   updateElements: (elements: { nodes: NodeData[]; edges: EdgeData[] }) => void;
   updateTheme: (theme: 'light' | 'dark') => void;
+  applyLayout: (config: LayoutOptions) => void;
 }
 
-// Default style configuration with valid Cytoscape properties
-const getBaseStyle = (theme: 'light' | 'dark'): any => [
-  // Node styles
+const getCursorForMode = (mode: InteractionMode): string => {
+  switch (mode) {
+    case 'manualEdit':
+    case 'paint':
+      return 'crosshair';
+    case 'view':
+    case 'layout':
+    case 'analyze':
+      return 'grab';
+    default:
+      return 'default';
+  }
+};
+
+const getBaseStyle = (theme: 'light' | 'dark'): any[] => [
   {
     selector: 'node',
     style: {
@@ -41,65 +62,31 @@ const getBaseStyle = (theme: 'light' | 'dark'): any => [
       'color': theme === 'dark' ? '#f8fafc' : '#0f172a',
       'font-size': '12px',
       'font-family': 'system-ui, sans-serif',
-      'font-weight': '600',
+      'font-weight': 600,
       'text-outline-width': 2,
       'text-outline-color': theme === 'dark' ? '#1e293b' : '#ffffff',
       'width': 60,
       'height': 60,
       'border-width': 2,
       'border-color': theme === 'dark' ? '#334155' : '#e2e8f0',
-      'border-opacity': 0.8,
       'shape': 'ellipse',
-    }
+      'transition-property': 'background-color, border-color',
+      'transition-duration': 0.3,
+    },
   },
-  
-  // Selected node
   {
     selector: 'node:selected',
     style: {
       'border-width': 4,
       'border-color': '#f97316',
-      'border-opacity': 1,
-    }
+    },
   },
-
-  // Locked node indicator
   {
     selector: 'node[locked="true"]',
     style: {
       'border-style': 'dashed',
-    }
+    },
   },
-
-  // Connector nodes (smaller, different shape)
-  {
-    selector: 'node[isConnectorNode="true"]',
-    style: {
-      'width': 40,
-      'height': 40,
-      'shape': 'diamond',
-      'background-color': theme === 'dark' ? '#64748b' : '#94a3b8',
-      'font-size': '10px',
-    }
-  },
-
-  // Rectangle nodes
-  {
-    selector: 'node[shape="rectangle"]',
-    style: {
-      'shape': 'rectangle',
-    }
-  },
-
-  // Triangle nodes
-  {
-    selector: 'node[shape="triangle"]',
-    style: {
-      'shape': 'triangle',
-    }
-  },
-
-  // Edge styles
   {
     selector: 'edge',
     style: {
@@ -109,43 +96,36 @@ const getBaseStyle = (theme: 'light' | 'dark'): any => [
       'target-arrow-shape': 'triangle',
       'arrow-scale': 1.2,
       'curve-style': 'bezier',
-      'control-point-step-size': 40,
-      'edge-text-rotation': 'autorotate',
       'label': 'data(label)',
       'font-size': '10px',
-      'font-family': 'system-ui, sans-serif',
       'color': theme === 'dark' ? '#f8fafc' : '#0f172a',
       'text-background-color': theme === 'dark' ? '#1e293b' : '#ffffff',
       'text-background-opacity': 0.8,
-      'text-background-padding': '3px',
-      'text-background-shape': 'roundrectangle',
-    }
+      'transition-property': 'line-color, target-arrow-color',
+      'transition-duration': 0.3,
+    },
   },
-
-  // Selected edge
   {
     selector: 'edge:selected',
     style: {
       'width': 5,
       'line-color': '#f97316',
       'target-arrow-color': '#f97316',
-    }
+    },
   },
 ];
 
-// Convert our data format to Cytoscape format
 const convertToElements = (nodes: NodeData[], edges: EdgeData[]): (NodeDefinition | EdgeDefinition)[] => {
   const nodeElements: NodeDefinition[] = nodes.map(node => ({
     data: {
       id: node.id,
       label: node.label,
-      color: node.color || (node.isConnectorNode ? '#94a3b8' : '#0ea5e9'),
-      locked: node.locked?.toString() || 'false',
-      isConnectorNode: node.isConnectorNode?.toString() || 'false',
-      shape: node.shape || 'ellipse',
-      tags: node.tags?.join(',') || '',
+      color: node.color,
+      locked: node.locked,
     },
     position: node.position,
+    grabbable: true,
+    selectable: true,
   }));
 
   const edgeElements: EdgeDefinition[] = edges.map(edge => ({
@@ -153,11 +133,10 @@ const convertToElements = (nodes: NodeData[], edges: EdgeData[]): (NodeDefinitio
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      label: edge.label || '',
-      color: edge.color || '#64748b',
-      weight: edge.weight || 1,
-      length: edge.length || 100,
+      label: edge.label,
+      color: edge.color,
     },
+    selectable: true,
   }));
 
   return [...nodeElements, ...edgeElements];
@@ -166,119 +145,69 @@ const convertToElements = (nodes: NodeData[], edges: EdgeData[]): (NodeDefinitio
 export const initCytoscape = (config: CytoscapeConfig): CytoscapeInstance => {
   const { container, elements, mode, theme } = config;
 
-  // Ensure container has proper dimensions
-  if (container.offsetWidth === 0 || container.offsetHeight === 0) {
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.style.minHeight = '400px';
-  }
-
-  // Initialize Cytoscape
   const cy = cytoscape({
     container,
     elements: convertToElements(elements.nodes, elements.edges),
     style: getBaseStyle(theme),
-    layout: {
-      name: 'preset',
-      padding: 20,
-    },
-    // Interaction settings
-    userPanningEnabled: mode === 'view' || mode === 'analyze',
+    layout: { name: 'preset' },
     userZoomingEnabled: true,
-    boxSelectionEnabled: mode === 'manualEdit' || mode === 'paint',
-    selectionType: mode === 'paint' ? 'single' : 'additive',
-    // Performance settings
-    motionBlur: true,
-    motionBlurOpacity: 0.2,
-    // Remove custom wheel sensitivity to avoid warnings
+    boxSelectionEnabled: true,
   });
 
-  // Initialize edge handles for manual editing
   const edgeHandles = cy.edgehandles({
-    canConnect: () => true,
-    edgeParams: () => ({
-      data: {
-        color: '#64748b',
-      },
-    }),
-    hoverDelay: 150,
-    snap: true,
-    snapThreshold: 50,
-    snapFrequency: 15,
-    noEdgeEventsInDraw: true,
-    disableBrowserGestures: true,
     handleSize: 12,
     handleColor: '#0ea5e9',
-    handleLineColor: '#0ea5e9',
-    handleLineWidth: 2,
-    handleNodes: 'node',
-    handlePosition: 'middle top',
     edgeType: () => 'flat',
-    loopAllowed: () => false,
-    nodeLoopOffset: -50,
-    complete: (sourceNode: NodeSingular, _targetNode: NodeSingular, addedEdge: EdgeSingular) => {
-      // Apply color inheritance logic
-      const sourceData = sourceNode.data();
-      const isConnectorSource = sourceData.isConnectorNode === 'true';
-      
-      if (!isConnectorSource && sourceData.color) {
-        addedEdge.data('color', sourceData.color);
-      }
-      
-      // Trigger update callback if provided
+    complete: (_sourceNode: NodeSingular, _targetNode: NodeSingular, addedEdge: EdgeSingular) => {
       cy.trigger('edgeAdded', [addedEdge]);
     },
   });
 
-  // Update mode function
   const updateMode = (newMode: InteractionMode) => {
-    // Enable/disable interactions based on mode
-    cy.userPanningEnabled(newMode === 'view' || newMode === 'analyze');
-    cy.boxSelectionEnabled(newMode === 'manualEdit' || newMode === 'paint');
-    
-    // Enable/disable edge handles
+    cy.scratch('mode', newMode);
+    container.style.cursor = getCursorForMode(newMode);
+
     if (newMode === 'manualEdit') {
       edgeHandles.enable();
     } else {
       edgeHandles.disable();
     }
-
-    // Update selection type
-    if (newMode === 'paint') {
-      cy.selectionType('single');
+    
+    if (newMode === 'manualEdit' || newMode === 'layout') {
+      cy.nodes().grabify();
     } else {
-      cy.selectionType('additive');
+      cy.nodes().ungrabify();
     }
 
-    // Update node dragging
-    if (newMode === 'manualEdit' || newMode === 'layout') {
-      cy.nodes().ungrabify();
+    if (newMode === 'view' || newMode === 'analyze') {
+        cy.userPanningEnabled(true);
     } else {
-      cy.nodes().grabify();
+        cy.userPanningEnabled(false);
     }
   };
 
-  // Update elements function
   const updateElements = (newElements: { nodes: NodeData[]; edges: EdgeData[] }) => {
     const cytoscapeElements = convertToElements(newElements.nodes, newElements.edges);
     cy.json({ elements: cytoscapeElements });
+    updateMode(cy.scratch('mode') || 'view');
   };
 
-  // Update theme function
   const updateTheme = (newTheme: 'light' | 'dark') => {
     cy.style(getBaseStyle(newTheme));
   };
-
-  // Set initial mode
-  updateMode(mode);
-
-  // Cleanup function
-  const destroy = () => {
-    if (edgeHandles) {
-      edgeHandles.destroy();
+  
+  const applyLayout = (layoutConfig: LayoutOptions) => {
+    if (cy.nodes().length > 0) {
+      cy.layout(layoutConfig).run();
     }
+  };
+
+  const destroy = () => {
+    edgeHandles.destroy();
     cy.destroy();
   };
+
+  updateMode(mode);
 
   return {
     cy,
@@ -287,5 +216,6 @@ export const initCytoscape = (config: CytoscapeConfig): CytoscapeInstance => {
     updateMode,
     updateElements,
     updateTheme,
+    applyLayout,
   };
 }; 
