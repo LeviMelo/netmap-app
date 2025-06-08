@@ -478,14 +478,16 @@ export const useAppStore = create<AppState>()(
           }))
         },
         
+        // FIXED: The toggleTheme action should ONLY manage state.
+        // The responsibility for applying the class to the <html> element belongs in a
+        // React component's `useEffect` hook, not in the state store.
         toggleTheme: () => {
-          const state = get()
-          const newTheme = state.settings.theme === 'light' ? 'dark' : 'light'
-          get().updateSettings({ theme: newTheme })
-          
-          // Update document class for CSS
-          const html = document.documentElement
-          html.classList.toggle('dark', newTheme === 'dark')
+            set((state) => ({
+              settings: {
+                ...state.settings,
+                theme: state.settings.theme === 'light' ? 'dark' : 'light',
+              },
+            }));
         },
         
         // UI State Management

@@ -1,27 +1,25 @@
 /**
  * Contextual Topbar Component
- * 
- * Secondary navigation bar implementing glassmorphism Level 2 (semi-transparent).
- * Displays context-sensitive tabs based on the current interaction mode.
- * Horizontally scrollable on mobile with proper accessibility.
+ * REFACTORED: This component is now simpler. It no longer manages the theme toggle.
+ * Its sole responsibility is to display context-sensitive tabs.
  */
-
-import React from 'react'
-import { ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
-import { useAppStore } from '../../stores/appState'
-import { InteractionMode } from '../../stores/appState'
+import React, { useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAppStore } from '../../stores/appState';
+import { InteractionMode } from '../../stores/appState';
+import { useResponsive } from '../../hooks/useResponsive';
 
 interface ContextualTopbarProps {
-  className?: string
+  className?: string;
 }
 
 interface SecondaryTab {
-  id: string
-  label: string
-  description: string
+  id: string;
+  label: string;
+  description: string;
 }
 
-// Define secondary tabs for each interaction mode
+// ... (secondaryTabsMap remains the same)
 const secondaryTabsMap: Record<InteractionMode, SecondaryTab[]> = {
   view: [
     { id: 'overview', label: 'Overview', description: 'Graph overview and navigation' },
@@ -57,197 +55,104 @@ const secondaryTabsMap: Record<InteractionMode, SecondaryTab[]> = {
   ],
 }
 
+
 export const ContextualTopbar: React.FC<ContextualTopbarProps> = ({ className = '' }) => {
-  const { mode, sidebarCollapsed, toggleSidebar, settings, toggleTheme } = useAppStore()
-  const [activeSecondaryTab, setActiveSecondaryTab] = React.useState<string>('')
-  
-  const secondaryTabs = secondaryTabsMap[mode] || []
-  
-  // Set default active tab when mode changes
-  React.useEffect(() => {
+  const { mode, sidebarCollapsed, toggleSidebar } = useAppStore();
+  const [activeSecondaryTab, setActiveSecondaryTab] = React.useState<string>('');
+  const { isDesktop } = useResponsive();
+
+  const secondaryTabs = secondaryTabsMap[mode] || [];
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
     if (secondaryTabs.length > 0) {
-      setActiveSecondaryTab(secondaryTabs[0].id)
+      setActiveSecondaryTab(secondaryTabs[0].id);
     }
-  }, [mode, secondaryTabs])
+  }, [mode, secondaryTabs]);
+
+  useEffect(() => {
+    const activeIndex = secondaryTabs.findIndex(tab => tab.id === activeSecondaryTab);
+    if (activeIndex !== -1) {
+      const activeTabElement = tabRefs.current[activeIndex];
+      if (activeTabElement) {
+        activeTabElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeSecondaryTab, secondaryTabs]);
 
   if (secondaryTabs.length === 0) {
-    // Show basic topbar with just collapse button and theme toggle
+    // If no tabs, render a minimal bar on desktop to house the collapse button
+    if (!isDesktop) return null; // Render nothing on mobile
     return (
-      <div className={[
-        'glass-level-2',
-        'border-b border-border',
-        'px-4 py-2 h-16 flex items-center justify-between',
-        'relative overflow-hidden',
-        className
-      ].filter(Boolean).join(' ')}>
-        <div className="absolute inset-0 bg-gradient-to-r from-accent-secondary/3 to-accent-tertiary/3 opacity-50"></div>
-        
+      <div className="glass-level-2 border-b border-border px-4 h-16 flex items-center">
         <button
           onClick={toggleSidebar}
-          className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all hover:scale-105 text-accent-primary relative z-10"
+          className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all text-accent-primary"
           aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
-        
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all hover:scale-105 text-accent-primary relative z-10"
-          aria-label={`Switch to ${settings.theme === 'dark' ? 'light' : 'dark'} mode`}
-        >
-          {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
       </div>
-    )
+    );
   }
 
-  const topbarClasses = [
-    'glass-level-2',
-    'border-b border-border',
-    'px-4 py-2 h-16 flex items-center',
-    'relative overflow-hidden',
-    className
-  ].filter(Boolean).join(' ')
-
   return (
-    <div className={topbarClasses}>
-      {/* Subtle animated background */}
+    <div className={`glass-level-2 border-b border-border h-16 flex items-center relative overflow-hidden ${className}`}>
       <div className="absolute inset-0 bg-gradient-to-r from-accent-secondary/3 to-accent-tertiary/3 opacity-50"></div>
       
-      {/* Desktop Layout */}
-      <div className="hidden md:flex items-center w-full relative z-10">
-        {/* Left: Sidebar Collapse Button */}
-        <button
-          onClick={toggleSidebar}
-          className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all duration-300 text-accent-primary mr-4 flex-shrink-0"
-          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-        
-        {/* Center: Scrollable Context Tabs Container */}
-        <div className="flex-1 min-w-0 mx-4">
-          <div 
-            className="flex items-center justify-center gap-2 overflow-x-auto py-2 scrollbar-hide"
-            role="tablist" 
-            aria-label={`${mode} options`}
-          >
-            {secondaryTabs.map((tab, index) => {
-              const isActive = activeSecondaryTab === tab.id
-              
-              return (
+      <div className="flex items-center w-full px-4 relative z-10 gap-4">
+        {isDesktop && (
+          <div className="flex-shrink-0">
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all duration-300 text-accent-primary"
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex justify-center">
+          <div className="flex items-center gap-2 overflow-x-auto py-2 scrollbar-hide [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]" role="tablist" aria-label={`${mode} options`}>
+              {secondaryTabs.map((tab, index) => (
                 <button
                   key={tab.id}
+                  ref={el => { tabRefs.current[index] = el }}
                   onClick={() => setActiveSecondaryTab(tab.id)}
                   className={[
                     'flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium',
                     'transition-all duration-300 border border-transparent whitespace-nowrap',
-                    'min-h-[36px] relative overflow-hidden group',
-                    isActive
-                      ? 'bg-accent-primary/15 text-accent-primary border-accent-primary/30 shadow-md backdrop-blur-sm'
-                      : 'text-text-muted hover:text-accent-primary hover:bg-accent-primary/8 hover:backdrop-blur-sm hover:shadow-md'
+                    'min-h-[36px]',
+                    activeSecondaryTab === tab.id
+                      ? 'bg-accent-primary/15 text-accent-primary border-accent-primary/30 shadow-md'
+                      : 'text-text-muted hover:text-accent-primary hover:bg-accent-primary/8'
                   ].join(' ')}
-                  style={{ 
-                    animationDelay: `${index * 50}ms`
-                  }}
                   role="tab"
-                  aria-selected={isActive}
+                  aria-selected={activeSecondaryTab === tab.id}
                   aria-describedby={`${tab.id}-description`}
                 >
                   <span className="relative z-10">{tab.label}</span>
-                  
-                  {/* Hidden description for screen readers */}
-                  <span 
-                    id={`${tab.id}-description`}
-                    className="sr-only"
-                  >
-                    {tab.description}
-                  </span>
+                  <span id={`${tab.id}-description`} className="sr-only">{tab.description}</span>
                 </button>
-              )
-            })}
+              ))}
+            </div>
           </div>
         </div>
-        
-        {/* Right: Mode Indicator + Theme Toggle */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Mode Indicator */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent-secondary/10 border border-accent-secondary/20">
-            <div className="w-2 h-2 rounded-full bg-accent-secondary"></div>
-            <span className="text-text-muted text-xs">Mode:</span>
-            <span className="font-bold text-accent-secondary capitalize tracking-wide text-xs">
-              {mode.replace(/([A-Z])/g, ' $1').toLowerCase()}
-            </span>
+
+        {isDesktop && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent-secondary/10 border border-accent-secondary/20">
+              <div className="w-2 h-2 rounded-full bg-accent-secondary"></div>
+              <span className="text-text-muted text-xs">Mode:</span>
+              <span className="font-bold text-accent-secondary capitalize tracking-wide text-xs">
+                {mode.replace(/([A-Z])/g, ' $1').toLowerCase()}
+              </span>
+            </div>
           </div>
-          
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all duration-300 text-accent-primary"
-            aria-label={`Switch to ${settings.theme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
-      </div>
-      
-      {/* Mobile Layout - Only Context Menu in Centered Scrollable Container */}
-      <div className="md:hidden flex items-center w-full relative z-10">
-        {/* Full-width scrollable context menu container */}
-        <div className="flex-1 min-w-0 px-4">
-          <div 
-            className="flex items-center justify-center gap-2 overflow-x-auto py-2 scrollbar-hide"
-            role="tablist" 
-            aria-label={`${mode} options`}
-          >
-            {secondaryTabs.map((tab, index) => {
-              const isActive = activeSecondaryTab === tab.id
-              
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveSecondaryTab(tab.id)}
-                  className={[
-                    'flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium',
-                    'transition-all duration-300 border border-transparent whitespace-nowrap',
-                    'min-h-[36px] relative overflow-hidden group',
-                    isActive
-                      ? 'bg-accent-primary/15 text-accent-primary border-accent-primary/30 shadow-md backdrop-blur-sm'
-                      : 'text-text-muted hover:text-accent-primary hover:bg-accent-primary/8 hover:backdrop-blur-sm hover:shadow-md'
-                  ].join(' ')}
-                  style={{ 
-                    animationDelay: `${index * 50}ms`
-                  }}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-describedby={`${tab.id}-description`}
-                >
-                  <span className="relative z-10">{tab.label}</span>
-                  
-                  {/* Hidden description for screen readers */}
-                  <span 
-                    id={`${tab.id}-description`}
-                    className="sr-only"
-                  >
-                    {tab.description}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-        
-        {/* Right: Theme Toggle (compact for mobile) */}
-        <div className="flex-shrink-0 pr-4">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg hover:bg-accent-primary/10 transition-all duration-300 text-accent-primary"
-            aria-label={`Switch to ${settings.theme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
+        )}
       </div>
     </div>
-  )
-} 
+  );
+};
