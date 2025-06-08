@@ -638,27 +638,27 @@ body {
 
 @keyframes pulse-glow {
   0%, 100% {
-    opacity: 0.1;
+    opacity: 0.2;
     transform: scale(1);
   }
   50% {
-    opacity: 0.2;
-    transform: scale(1.05);
+    opacity: 0.35;
+    transform: scale(1.1);
   }
 }
 
 @keyframes gentle-drift-one {
   0% { transform: translate(0, 0); }
-  25% { transform: translate(5vw, 10vh); }
-  50% { transform: translate(-5vw, 15vh); }
-  75% { transform: translate(10vw, -5vh); }
+  25% { transform: translate(8vw, 12vh) scale(1.1); }
+  50% { transform: translate(-8vw, 18vh) scale(0.9); }
+  75% { transform: translate(12vw, -8vh) scale(1.1); }
   100% { transform: translate(0, 0); }
 }
 
 @keyframes gentle-drift-two {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-5vw, -10vh); }
-  50% { transform: translate(5vw, -15vh); }
-  75% { transform: translate(-10vw, 5vh); }
-  100% { transform: translate(0, 0); }
+  0% { transform: translate(0, 0) scale(1.1); }
+  25% { transform: translate(-8vw, -12vh) scale(0.9); }
+  50% { transform: translate(8vw, -18vh) scale(1.1); }
+  75% { transform: translate(-12vw, 8vh) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1.1); }
 }
